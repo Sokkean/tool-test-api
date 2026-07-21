@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root, [data-theme="dark"] {
+    --theme-50: 248 250 252;
+    --theme-100: 241 245 249;
+    --theme-200: 226 232 240;
+    --theme-300: 203 213 225;
+    --theme-400: 148 163 184;
+    --theme-500: 100 116 139;
+    --theme-600: 71 85 105;
+    --theme-700: 51 65 85;
+    --theme-800: 30 41 59;
+    --theme-900: 15 23 42;
+    --theme-950: 2 6 23;
+    
+    --scroll-thumb: #334155;
+    --scroll-thumb-hover: #475569;
+
+    --syntax-key: 125 211 252; /* sky-300 */
+    --syntax-str: 253 186 116; /* orange-300 */
+    --syntax-num: 110 231 183; /* emerald-300 */
+    --syntax-bool: 96 165 250; /* blue-400 */
+    --syntax-null: 248 113 113; /* red-400 */
+    --syntax-bg: 30 30 30; /* #1e1e1e */
+  }
+
+  [data-theme="light"] {
+    /* Inverted for light mode */
+    --theme-950: 255 255 255;
+    --theme-900: 248 250 252;
+    --theme-800: 241 245 249;
+    --theme-700: 226 232 240;
+    --theme-600: 203 213 225;
+    --theme-500: 148 163 184;
+    --theme-400: 100 116 139;
+    --theme-300: 71 85 105;
+    --theme-200: 51 65 85;
+    --theme-100: 30 41 59;
+    --theme-50: 15 23 42;
+    
+    --scroll-thumb: #cbd5e1;
+    --scroll-thumb-hover: #94a3b8;
+
+    --syntax-key: 3 105 161; /* sky-700 */
+    --syntax-str: 194 65 12; /* orange-700 */
+    --syntax-num: 4 120 87; /* emerald-700 */
+    --syntax-bool: 29 78 216; /* blue-700 */
+    --syntax-null: 185 28 28; /* red-700 */
+    --syntax-bg: 241 245 249; /* slate-100 */
+  }
+
+  /* Utility classes for syntax highlighting that work immediately */
+  .bg-syntax-bg { background-color: rgb(var(--syntax-bg)); }
+  .text-syntax-key { color: rgb(var(--syntax-key)); }
+  .text-syntax-str { color: rgb(var(--syntax-str)); }
+  .text-syntax-num { color: rgb(var(--syntax-num)); }
+  .text-syntax-bool { color: rgb(var(--syntax-bool)); }
+  .text-syntax-null { color: rgb(var(--syntax-null)); }
+
+  [data-theme="ocean"] {
+    /* Vibrant deep ocean blue/cyan theme */
+    --theme-50: 236 253 255;
+    --theme-100: 207 250 254;
+    --theme-200: 165 243 252;
+    --theme-300: 103 232 249;
+    --theme-400: 34 211 238;
+    --theme-500: 6 182 212;
+    --theme-600: 8 145 178;
+    --theme-700: 14 116 144;
+    --theme-800: 19 56 94;
+    --theme-900: 12 38 66;
+    --theme-950: 8 26 46;
+    
+    --scroll-thumb: #13385e;
+    --scroll-thumb-hover: #0e7490;
+  }
+}
+
+/* Custom Scrollbar for a premium feel */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scroll-thumb);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scroll-thumb-hover);
+}

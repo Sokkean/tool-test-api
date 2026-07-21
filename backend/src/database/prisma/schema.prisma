@@ -1,0 +1,80 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id         Int         @id @default(autoincrement())
+  email      String      @unique
+  password   String
+  name       String?
+  createdAt  DateTime    @default(now())
+  workspaces Workspace[]
+  teamMemberships WorkspaceMember[]
+}
+
+model Workspace {
+  id          Int          @id @default(autoincrement())
+  name        String
+  userId      Int
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime     @default(now())
+  collections Collection[]
+  members     WorkspaceMember[]
+}
+
+model WorkspaceMember {
+  id          Int        @id @default(autoincrement())
+  workspaceId Int
+  workspace   Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId      Int
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role        String     @default("MEMBER")
+  createdAt   DateTime   @default(now())
+
+  @@unique([workspaceId, userId])
+}
+
+model Collection {
+  id          Int           @id @default(autoincrement())
+  name        String
+  workspaceId Int
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  parentId    Int?
+  parent      Collection?   @relation("SubCollections", fields: [parentId], references: [id], onDelete: Cascade)
+  children    Collection[]  @relation("SubCollections")
+  createdAt   DateTime      @default(now())
+  requests    RequestItem[]
+}
+
+model RequestItem {
+  id           Int              @id @default(autoincrement())
+  name         String
+  method       String
+  url          String
+  headers      String?          // Stored as JSON string
+  queryParams  String?          // Stored as JSON string
+  body         String?          // Stored as JSON string
+  preRequestScript String?      // Stored as raw string
+  testScript   String?          // Stored as raw string
+  collectionId Int
+  collection   Collection       @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  createdAt    DateTime         @default(now())
+  history      RequestHistory[]
+}
+
+model RequestHistory {
+  id            Int         @id @default(autoincrement())
+  requestItemId Int?
+  requestItem   RequestItem? @relation(fields: [requestItemId], references: [id], onDelete: SetNull)
+  method        String
+  url           String
+  status        Int
+  timeMs        Int
+  response      String?     // Stored as JSON string
+  createdAt     DateTime    @default(now())
+}
