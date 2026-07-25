@@ -191,12 +191,45 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const saveRequest = async (collectionId, requestData, tempId = null) => {
     const authStore = useAuthStore()
     const config = useRuntimeConfig()
+    const payload = { ...requestData }
+    if (payload.bodyType) {
+      payload.body = JSON.stringify({
+        _bodyType: payload.bodyType,
+        raw: payload.body,
+        formdata: payload.bodyForm,
+        urlencoded: payload.bodyUrlencoded
+      })
+      delete payload.bodyType
+      delete payload.bodyForm
+      delete payload.bodyUrlencoded
+    }
+
     const res = await fetch(`${config.public.apiBaseUrl}/workspaces/collections/${collectionId}/requests`, {
       method: 'POST',
       headers: { 'Content-Type':'application/json', 'Authorization': `Bearer ${authStore.token}` },
-      body: JSON.stringify(requestData)
+      body: JSON.stringify(payload)
     })
-    const savedReq = await res.json()
+    const rawReq = await res.json()
+    
+    // Deserialize immediately for the open tab
+    if (rawReq.body) {
+      try {
+        const p = JSON.parse(rawReq.body)
+        if (p && p._bodyType) {
+          rawReq.bodyType = p._bodyType
+          rawReq.body = p.raw || ''
+          rawReq.bodyForm = p.formdata || '[]'
+          rawReq.bodyUrlencoded = p.urlencoded || '[]'
+        } else {
+          rawReq.bodyType = 'raw'
+        }
+      } catch(e) {
+        rawReq.bodyType = 'raw'
+      }
+    } else {
+      rawReq.bodyType = 'none'
+    }
+    const savedReq = rawReq
     
     if (tempId) {
       const idx = openRequests.value.findIndex(r => r.id === tempId)
@@ -207,25 +240,46 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
     
     // Refresh the active collection to fetch the new request
-    await selectCollection(activeCollection.value)
+    await loadWorkspaces()
+    if (activeCollection.value) {
+      await selectCollection(activeCollection.value)
+    }
   }
 
   const saveRequestChanges = async (id, data) => {
     const authStore = useAuthStore()
     const config = useRuntimeConfig()
+    
+    const payload = { ...data }
+    if (payload.bodyType) {
+      payload.body = JSON.stringify({
+        _bodyType: payload.bodyType,
+        raw: payload.body,
+        formdata: payload.bodyForm,
+        urlencoded: payload.bodyUrlencoded
+      })
+      delete payload.bodyType
+      delete payload.bodyForm
+      delete payload.bodyUrlencoded
+    }
+    
     await fetch(`${config.public.apiBaseUrl}/workspaces/requests/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type':'application/json', 'Authorization': `Bearer ${authStore.token}` },
-      body: JSON.stringify(data)
+      body: JSON.stringify(payload)
     })
     
     // Clear the isNew flag upon explicit save
     const req = openRequests.value.find(r => r.id === id)
     if (req) {
       req._isNew = false
+      Object.assign(req, data)
     }
     
-    await selectCollection(activeCollection.value)
+    await loadWorkspaces()
+    if (activeCollection.value) {
+      await selectCollection(activeCollection.value)
+    }
   }
 
   const renameRequest = async (id, name) => {
@@ -273,7 +327,27 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       headers: { 'Authorization': `Bearer ${authStore.token}` }
     })
     if (res.ok) {
-      return await res.json()
+      const data = await res.json()
+      return data.map(req => {
+        if (req.body) {
+          try {
+            const p = JSON.parse(req.body)
+            if (p && p._bodyType) {
+              req.bodyType = p._bodyType
+              req.body = p.raw || ''
+              req.bodyForm = p.formdata || '[]'
+              req.bodyUrlencoded = p.urlencoded || '[]'
+            } else {
+              req.bodyType = 'raw'
+            }
+          } catch(e) {
+            req.bodyType = 'raw'
+          }
+        } else {
+          req.bodyType = 'none'
+        }
+        return req
+      })
     }
     return []
   }
@@ -301,6 +375,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const isRequestModified = (id) => {
     const openReq = openRequests.value.find(r => r.id === id)
     if (!openReq) return false
+    if (openReq._isNew) return true
     
     let originalReq = null
     for (const ws of workspaces.value) {
@@ -315,10 +390,14 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     
     if (!originalReq) return false
     
-    const fields = ['name', 'method', 'url', 'headers', 'queryParams', 'body']
+    const fields = ['name', 'method', 'url', 'headers', 'queryParams', 'body', 'bodyType', 'bodyForm', 'bodyUrlencoded', 'preRequestScript', 'testScript']
     for (const field of fields) {
-      const openVal = openReq[field] || ''
-      const origVal = originalReq[field] || ''
+      let openVal = openReq[field] || ''
+      let origVal = originalReq[field] || ''
+      
+      if (openVal === '[]' || openVal === '{}') openVal = ''
+      if (origVal === '[]' || origVal === '{}') origVal = ''
+      
       if (openVal !== origVal) {
         return true
       }
@@ -371,6 +450,72 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     selectRequest(savedReq)
   }
 
+  const importCollection = async (workspaceId, collectionData, parentId = null) => {
+    const authStore = useAuthStore()
+    const config = useRuntimeConfig()
+    let url = `${config.public.apiBaseUrl}/workspaces/${workspaceId}/import`
+    if (parentId) {
+      url += `?parentId=${parentId}`
+    }
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authStore.token}` },
+      body: JSON.stringify(collectionData)
+    })
+    if (!res.ok) {
+      throw new Error('Failed to import collection')
+    }
+    await loadWorkspaces()
+  }
+
+  const importGlobalCollection = async (collectionData) => {
+    const authStore = useAuthStore()
+    const config = useRuntimeConfig()
+    const res = await fetch(`${config.public.apiBaseUrl}/workspaces/import`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authStore.token}` },
+      body: JSON.stringify(collectionData)
+    })
+    if (!res.ok) {
+      throw new Error('Failed to import globally')
+    }
+    await loadWorkspaces()
+  }
+
+  const triggerDownload = (data, filename) => {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
+  const exportWorkspace = async (workspaceId, workspaceName) => {
+    const authStore = useAuthStore()
+    const config = useRuntimeConfig()
+    const res = await fetch(`${config.public.apiBaseUrl}/workspaces/${workspaceId}/export`, {
+      headers: { 'Authorization': `Bearer ${authStore.token}` }
+    })
+    if (!res.ok) throw new Error('Failed to export workspace')
+    const data = await res.json()
+    triggerDownload(data, `${workspaceName || 'workspace'}.postman_collection.json`)
+  }
+
+  const exportCollection = async (collectionId, collectionName) => {
+    const authStore = useAuthStore()
+    const config = useRuntimeConfig()
+    const res = await fetch(`${config.public.apiBaseUrl}/workspaces/collections/${collectionId}/export`, {
+      headers: { 'Authorization': `Bearer ${authStore.token}` }
+    })
+    if (!res.ok) throw new Error('Failed to export collection')
+    const data = await res.json()
+    triggerDownload(data, `${collectionName || 'collection'}.postman_collection.json`)
+  }
+
   return {
     workspaces,
     activeWorkspace,
@@ -399,6 +544,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     saveRequest,
     saveRequestChanges,
     renameRequest,
-    deleteRequest
+    deleteRequest,
+    importCollection,
+    importGlobalCollection,
+    exportWorkspace,
+    exportCollection
   }
 })

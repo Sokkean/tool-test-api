@@ -10,7 +10,10 @@ export class RequestsService {
     method: string;
     url: string;
     headers?: Record<string, string>;
+    bodyType?: string;
     body?: any;
+    bodyForm?: Array<{key: string; value: string; enabled?: boolean}>;
+    bodyUrlencoded?: Array<{key: string; value: string; enabled?: boolean}>;
     requestItemId?: number;
   }) {
     const startTime = Date.now();
@@ -26,11 +29,31 @@ export class RequestsService {
         }
       }
 
+      let finalData = requestData.body;
+      if (requestData.bodyType === 'urlencoded' && requestData.bodyUrlencoded) {
+        const searchParams = new URLSearchParams();
+        requestData.bodyUrlencoded.forEach(item => {
+          if (item.enabled !== false && item.key) {
+            searchParams.append(item.key, item.value || '');
+          }
+        });
+        finalData = searchParams;
+      } else if (requestData.bodyType === 'formdata' && requestData.bodyForm) {
+        // Node 18+ has built-in FormData
+        const formData = new FormData();
+        requestData.bodyForm.forEach(item => {
+          if (item.enabled !== false && item.key) {
+            formData.append(item.key, item.value || '');
+          }
+        });
+        finalData = formData;
+      }
+
       const response = await axios({
         method: requestData.method || 'GET',
         url: requestData.url,
         headers: sanitizedHeaders,
-        data: requestData.body,
+        data: finalData,
       });
       
       const endTime = Date.now();

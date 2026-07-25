@@ -33,6 +33,13 @@
           <Copy class="w-3 h-3" /> Duplicate
         </button>
         <div class="h-px bg-slate-700 my-1"></div>
+        <button @click.stop="handleImport" class="px-3 py-1.5 text-xs text-left hover:bg-slate-700 flex items-center gap-2 text-slate-300">
+          <Upload class="w-3 h-3" /> Import Folder
+        </button>
+        <button @click.stop="handleExport" class="px-3 py-1.5 text-xs text-left hover:bg-slate-700 flex items-center gap-2 text-slate-300">
+          <Download class="w-3 h-3" /> Export
+        </button>
+        <div class="h-px bg-slate-700 my-1"></div>
         <button @click.stop="handleDelete" class="px-3 py-1.5 text-xs text-left hover:bg-red-500/20 text-red-400 flex items-center gap-2">
           <Trash2 class="w-3 h-3" /> Delete
         </button>
@@ -93,9 +100,9 @@
 </template>
 
 <script setup>
-import { ref, defineProps, defineEmits } from 'vue'
+import { ref, defineProps, defineEmits, inject } from 'vue'
 import { useWorkspaceStore } from '../stores/workspace'
-import { Folder, ChevronRight, MoreVertical, Edit2, Copy, Trash2, FilePlus, FolderPlus, Plus } from 'lucide-vue-next'
+import { Folder, ChevronRight, MoreVertical, Edit2, Copy, Trash2, FilePlus, FolderPlus, Plus, Download, Upload } from 'lucide-vue-next'
 
 const props = defineProps({
   collection: Object,
@@ -106,6 +113,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update:activeMenu'])
 const workspaceStore = useWorkspaceStore()
+const triggerCollectionImport = inject('triggerCollectionImport')
 
 const isExpanded = ref(false)
 const isCreatingSub = ref(false)
@@ -149,6 +157,22 @@ const handleRename = async () => {
 const handleDuplicate = async () => {
   closeMenu()
   await workspaceStore.duplicateCollection(props.collection.id)
+}
+
+const handleExport = async () => {
+  closeMenu()
+  try {
+    await workspaceStore.exportCollection(props.collection.id, props.collection.name)
+  } catch (err) {
+    alert('Error exporting collection: ' + err.message)
+  }
+}
+
+const handleImport = () => {
+  closeMenu()
+  if (triggerCollectionImport) {
+    triggerCollectionImport(props.collection, props.workspace)
+  }
 }
 
 const handleDelete = async () => {

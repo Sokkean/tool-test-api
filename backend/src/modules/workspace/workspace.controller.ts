@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, Request, Query } from '@nestjs/common';
 import { WorkspaceService } from './workspace.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
@@ -15,6 +15,11 @@ export class WorkspaceController {
   @Get()
   getWorkspaces(@Request() req: any) {
     return this.workspaceService.getWorkspaces(req.user.id);
+  }
+
+  @Post('import')
+  importGlobalCollection(@Request() req: any, @Body() data: any) {
+    return this.workspaceService.importGlobalCollection(req.user.id, data);
   }
 
   @Post(':id/collections')
@@ -85,5 +90,21 @@ export class WorkspaceController {
   @Delete(':id/members/:userId')
   removeMember(@Param('id') workspaceId: string, @Param('userId') userId: string) {
     return this.workspaceService.removeMember(parseInt(workspaceId), parseInt(userId));
+  }
+
+  @Post(':id/import')
+  importCollection(@Param('id') workspaceId: string, @Query('parentId') parentId: string, @Body() data: any) {
+    const parsedParentId = parentId ? parseInt(parentId) : undefined;
+    return this.workspaceService.importCollection(parseInt(workspaceId), data, parsedParentId);
+  }
+
+  @Get(':id/export')
+  exportWorkspace(@Param('id') workspaceId: string) {
+    return this.workspaceService.exportWorkspace(parseInt(workspaceId));
+  }
+
+  @Get('collections/:colId/export')
+  exportCollection(@Param('colId') collectionId: string) {
+    return this.workspaceService.exportCollection(parseInt(collectionId));
   }
 }

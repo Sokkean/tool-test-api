@@ -1,7 +1,8 @@
 <template>
   <div class="flex h-screen bg-slate-950 text-slate-200 overflow-hidden">
+    <input type="file" ref="fileInput" @change="handleFileUpload" accept=".json" class="hidden" />
     <!-- Sidebar -->
-    <div v-if="authStore.user" class="w-64 bg-slate-900/50 backdrop-blur-md border-r border-slate-800 flex flex-col shadow-xl z-10 shrink-0">
+    <div v-if="authStore.user" class="bg-slate-900/50 backdrop-blur-md border-r border-slate-800 flex flex-col shadow-xl z-10 shrink-0 relative transition-[width] duration-0" :style="{ width: `${sidebarWidth}px` }">
       <!-- User Profile -->
       <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/80">
         <div class="flex items-center gap-3 w-full min-w-0">
@@ -50,6 +51,12 @@
                   <button @click.stop="handleDuplicate(ws)" class="px-3 py-1.5 text-xs text-left hover:bg-slate-700 flex items-center gap-2 text-slate-300">
                     <Copy class="w-3 h-3" /> Duplicate
                   </button>
+                  <button @click.stop="triggerImport(ws)" class="px-3 py-1.5 text-xs text-left hover:bg-slate-700 flex items-center gap-2 text-slate-300">
+                    <Upload class="w-3 h-3" /> Import Collection
+                  </button>
+                  <button @click.stop="handleExport(ws)" class="px-3 py-1.5 text-xs text-left hover:bg-slate-700 flex items-center gap-2 text-slate-300">
+                    <Download class="w-3 h-3" /> Export
+                  </button>
                   <div class="h-px bg-slate-700 my-1"></div>
                   <button @click.stop="handleDelete(ws)" class="px-3 py-1.5 text-xs text-left hover:bg-red-500/20 text-red-400 flex items-center gap-2">
                     <Trash2 class="w-3 h-3" /> Delete
@@ -73,8 +80,11 @@
                   <input v-model="newCollectionName" placeholder="New Folder..." 
                     class="flex-1 w-full min-w-0 bg-slate-950/50 border border-slate-800 text-slate-300 px-2 py-1 rounded-md text-xs focus:outline-none focus:border-indigo-500 transition-colors placeholder:text-slate-600" 
                     @keyup.enter="createCollection(ws)" />
-                  <button @click="createCollection(ws)" class="p-1 bg-slate-800 hover:bg-indigo-500/20 text-slate-300 hover:text-indigo-400 rounded-md transition-colors border border-slate-700 hover:border-indigo-500/30 shrink-0">
+                  <button @click="createCollection(ws)" class="p-1 bg-slate-800 hover:bg-indigo-500/20 text-slate-300 hover:text-indigo-400 rounded-md transition-colors border border-slate-700 hover:border-indigo-500/30 shrink-0" title="New Folder">
                     <Plus class="w-3.5 h-3.5" />
+                  </button>
+                  <button @click="triggerImport(ws)" class="p-1 bg-slate-800 hover:bg-emerald-500/20 text-slate-300 hover:text-emerald-400 rounded-md transition-colors border border-slate-700 hover:border-emerald-500/30 shrink-0" title="Import Postman Collection (.json)">
+                    <Upload class="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
@@ -85,8 +95,11 @@
             <input v-model="newWorkspaceName" placeholder="New Workspace..." 
               class="flex-1 w-full min-w-0 bg-slate-950/50 border border-slate-800 text-slate-300 px-2 py-1.5 rounded-md text-sm focus:outline-none focus:border-blue-500 transition-colors placeholder:text-slate-600" 
               @keyup.enter="createWorkspace" />
-            <button @click="createWorkspace" class="p-1.5 bg-slate-800 hover:bg-blue-500/20 text-slate-300 hover:text-blue-400 rounded-md transition-colors border border-slate-700 hover:border-blue-500/30 shrink-0">
+            <button @click="createWorkspace" class="p-1.5 bg-slate-800 hover:bg-blue-500/20 text-slate-300 hover:text-blue-400 rounded-md transition-colors border border-slate-700 hover:border-blue-500/30 shrink-0" title="New Workspace">
               <Plus class="w-4 h-4" />
+            </button>
+            <button @click="triggerGlobalImport" class="p-1.5 bg-slate-800 hover:bg-emerald-500/20 text-slate-300 hover:text-emerald-400 rounded-md transition-colors border border-slate-700 hover:border-emerald-500/30 shrink-0" title="Import Postman Collection (.json)">
+              <Upload class="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -100,6 +113,11 @@
           <button @click="theme = 'light'" :class="theme === 'light' ? 'bg-slate-200 text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-300'" class="flex-1 py-1.5 text-xs font-medium rounded-md transition-all">Light</button>
           <button @click="theme = 'ocean'" :class="theme === 'ocean' ? 'bg-blue-900/50 text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-300'" class="flex-1 py-1.5 text-xs font-medium rounded-md transition-all">Ocean</button>
         </div>
+      </div>
+
+      <!-- Resizer Handle -->
+      <div @mousedown="startResize" class="absolute top-0 -right-1 bottom-0 w-2 cursor-col-resize z-50 group flex justify-center">
+        <div class="h-full w-0.5 bg-blue-500/0 group-hover:bg-blue-500/50 transition-colors"></div>
       </div>
     </div>
 
@@ -173,11 +191,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, provide } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../features/auth/stores/auth'
 import { useWorkspaceStore } from '../stores/workspace'
-import { Folder, LogOut, Plus, ChevronRight, Database, Layers, Palette, MoreVertical, Edit2, Copy, Trash2, Users, X, FilePlus, FolderPlus } from 'lucide-vue-next'
+import { Folder, LogOut, Plus, ChevronRight, Database, Layers, Palette, MoreVertical, Edit2, Copy, Trash2, Users, X, FilePlus, FolderPlus, Upload, Download } from 'lucide-vue-next'
 import FolderTreeItem from '../components/FolderTreeItem.vue'
 import { useState } from '#app'
 
@@ -199,7 +217,105 @@ const inviteError = ref('')
 const expandedWorkspaces = ref(new Set())
 const expandedCollections = ref(new Set())
 
+const sidebarWidth = ref(256)
+let isResizing = false
+
+const startResize = (e) => {
+  isResizing = true
+  document.addEventListener('mousemove', resize)
+  document.addEventListener('mouseup', stopResize)
+  document.body.style.userSelect = 'none'
+  document.body.style.cursor = 'col-resize'
+}
+
+const resize = (e) => {
+  if (isResizing) {
+    let newWidth = e.clientX
+    if (newWidth < 200) newWidth = 200
+    if (newWidth > 800) newWidth = 800
+    sidebarWidth.value = newWidth
+  }
+}
+
+const stopResize = () => {
+  isResizing = false
+  document.removeEventListener('mousemove', resize)
+  document.removeEventListener('mouseup', stopResize)
+  document.body.style.userSelect = ''
+  document.body.style.cursor = ''
+  localStorage.setItem('sidebar-width', sidebarWidth.value)
+}
+
+const fileInput = ref(null)
+const importWorkspaceTarget = ref(null)
+const importCollectionTarget = ref(null)
+
+const triggerImport = (ws) => {
+  activeMenu.value = null
+  importWorkspaceTarget.value = ws
+  importCollectionTarget.value = null
+  if (fileInput.value) {
+    fileInput.value.click()
+  }
+}
+
+provide('triggerCollectionImport', (collection, workspace) => {
+  activeMenu.value = null
+  importWorkspaceTarget.value = workspace
+  importCollectionTarget.value = collection
+  if (fileInput.value) fileInput.value.click()
+})
+
+const handleFileUpload = (event) => {
+  const file = event.target.files[0]
+  if (!file) return
+  
+  const reader = new FileReader()
+  reader.onload = async (e) => {
+    try {
+      const data = JSON.parse(e.target.result)
+      if (importCollectionTarget.value && importWorkspaceTarget.value) {
+        await workspaceStore.importCollection(importWorkspaceTarget.value.id, data, importCollectionTarget.value.id)
+      } else if (importWorkspaceTarget.value) {
+        await workspaceStore.importCollection(importWorkspaceTarget.value.id, data)
+      } else {
+        await workspaceStore.importGlobalCollection(data)
+      }
+      alert('Collection imported successfully!')
+    } catch (err) {
+      alert('Error importing collection: ' + err.message)
+    } finally {
+      event.target.value = '' // reset input
+      importWorkspaceTarget.value = null // reset target
+      importCollectionTarget.value = null
+    }
+  }
+  reader.readAsText(file)
+}
+
+const triggerGlobalImport = () => {
+  importWorkspaceTarget.value = null
+  importCollectionTarget.value = null
+  if (fileInput.value) {
+    fileInput.value.click()
+  }
+}
+
+const handleExport = async (ws) => {
+  activeMenu.value = null
+  try {
+    await workspaceStore.exportWorkspace(ws.id, ws.name)
+  } catch (err) {
+    alert('Error exporting workspace: ' + err.message)
+  }
+}
+
 onMounted(() => {
+  const savedWidth = localStorage.getItem('sidebar-width')
+  if (savedWidth) {
+    sidebarWidth.value = parseInt(savedWidth)
+  }
+
   authStore.loadAuth()
   if (!authStore.token) {
     router.push('/login')

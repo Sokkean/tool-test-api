@@ -5,7 +5,7 @@ export default defineNuxtConfig({
   css: ['~/assets/index.css'],
   runtimeConfig: {
     public: {
-      apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL || 'http://localhost:3001'
+      apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL || 'http://localhost:3002'
     }
   }
 })

@@ -177,4 +177,33 @@ export declare class WorkspaceService {
         role: string;
         workspaceId: number;
     }>;
+    importGlobalCollection(userId: number, data: any): Promise<{
+        name: string;
+        id: number;
+        createdAt: Date;
+        userId: number;
+    }>;
+    importCollection(workspaceId: number, data: any, parentId?: number): Promise<{
+        name: string;
+        id: number;
+        createdAt: Date;
+        workspaceId: number;
+        parentId: number | null;
+    }>;
+    private processPostmanItems;
+    private buildPostmanItems;
+    exportWorkspace(workspaceId: number): Promise<{
+        info: {
+            name: string;
+            schema: string;
+        };
+        item: any[];
+    }>;
+    exportCollection(collectionId: number): Promise<{
+        info: {
+            name: string;
+            schema: string;
+        };
+        item: any[];
+    }>;
 }

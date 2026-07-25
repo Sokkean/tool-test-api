@@ -2,7 +2,7 @@
   <div class="relative w-full h-full font-mono text-sm overflow-hidden bg-transparent group">
     <!-- Highlighted Output -->
     <pre 
-      class="absolute inset-0 pointer-events-none p-4 m-0 whitespace-pre-wrap break-all overflow-hidden text-slate-300 custom-scrollbar"
+      class="absolute inset-0 pointer-events-none p-4 m-0 border-0 border-transparent whitespace-pre-wrap break-all overflow-hidden text-slate-300 custom-scrollbar"
       aria-hidden="true"
       v-html="highlightedHtml"
     ></pre>
@@ -14,7 +14,7 @@
       @input="$emit('update:modelValue', $event.target.value)"
       @keydown="handleKeydown"
       @scroll="syncScroll"
-      class="absolute inset-0 w-full h-full p-4 m-0 resize-none outline-none whitespace-pre-wrap break-all bg-transparent text-transparent caret-white custom-scrollbar focus:ring-0 focus:outline-none"
+      class="absolute inset-0 w-full h-full p-4 m-0 border-0 border-transparent resize-none outline-none whitespace-pre-wrap break-all bg-transparent text-transparent caret-white custom-scrollbar focus:ring-0 focus:outline-none"
       spellcheck="false"
       :placeholder="placeholder"
     ></textarea>
@@ -40,6 +40,23 @@ const emit = defineEmits(['update:modelValue'])
 const textareaRef = ref(null)
 
 const handleKeydown = (e) => {
+  if (e.key === 'Tab') {
+    e.preventDefault()
+    const el = textareaRef.value
+    if (!el) return
+    const start = el.selectionStart
+    const end = el.selectionEnd
+    const value = props.modelValue || ''
+    
+    const newValue = value.substring(0, start) + '  ' + value.substring(end)
+    emit('update:modelValue', newValue)
+    
+    setTimeout(() => {
+      el.selectionStart = el.selectionEnd = start + 2
+    }, 0)
+    return
+  }
+
   if ((e.ctrlKey || e.metaKey) && e.key === '/') {
     e.preventDefault()
     toggleComment()
@@ -114,6 +131,10 @@ textarea, pre {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   line-height: 1.5;
   tab-size: 2;
+  font-weight: 400;
+  letter-spacing: normal;
+  word-spacing: normal;
+  text-rendering: optimizeLegibility;
 }
 
 /* Hide text color in textarea but keep selection visible */

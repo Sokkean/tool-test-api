@@ -35,6 +35,12 @@ export declare class WorkspaceController {
         createdAt: Date;
         userId: number;
     })[]>;
+    importGlobalCollection(req: any, data: any): Promise<{
+        name: string;
+        id: number;
+        createdAt: Date;
+        userId: number;
+    }>;
     createCollection(workspaceId: string, name: string, parentId?: number): Promise<{
         name: string;
         id: number;
@@ -176,5 +182,26 @@ export declare class WorkspaceController {
         userId: number;
         role: string;
         workspaceId: number;
+    }>;
+    importCollection(workspaceId: string, parentId: string, data: any): Promise<{
+        name: string;
+        id: number;
+        createdAt: Date;
+        workspaceId: number;
+        parentId: number | null;
+    }>;
+    exportWorkspace(workspaceId: string): Promise<{
+        info: {
+            name: string;
+            schema: string;
+        };
+        item: any[];
+    }>;
+    exportCollection(collectionId: string): Promise<{
+        info: {
+            name: string;
+            schema: string;
+        };
+        item: any[];
     }>;
 }

@@ -26,6 +26,9 @@ let WorkspaceController = class WorkspaceController {
     getWorkspaces(req) {
         return this.workspaceService.getWorkspaces(req.user.id);
     }
+    importGlobalCollection(req, data) {
+        return this.workspaceService.importGlobalCollection(req.user.id, data);
+    }
     createCollection(workspaceId, name, parentId) {
         return this.workspaceService.createCollection(parseInt(workspaceId), name, parentId);
     }
@@ -68,6 +71,16 @@ let WorkspaceController = class WorkspaceController {
     removeMember(workspaceId, userId) {
         return this.workspaceService.removeMember(parseInt(workspaceId), parseInt(userId));
     }
+    importCollection(workspaceId, parentId, data) {
+        const parsedParentId = parentId ? parseInt(parentId) : undefined;
+        return this.workspaceService.importCollection(parseInt(workspaceId), data, parsedParentId);
+    }
+    exportWorkspace(workspaceId) {
+        return this.workspaceService.exportWorkspace(parseInt(workspaceId));
+    }
+    exportCollection(collectionId) {
+        return this.workspaceService.exportCollection(parseInt(collectionId));
+    }
 };
 exports.WorkspaceController = WorkspaceController;
 __decorate([
@@ -85,6 +98,14 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], WorkspaceController.prototype, "getWorkspaces", null);
+__decorate([
+    (0, common_1.Post)('import'),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], WorkspaceController.prototype, "importGlobalCollection", null);
 __decorate([
     (0, common_1.Post)(':id/collections'),
     __param(0, (0, common_1.Param)('id')),
@@ -192,6 +213,29 @@ __decorate([
     __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", void 0)
 ], WorkspaceController.prototype, "removeMember", null);
+__decorate([
+    (0, common_1.Post)(':id/import'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Query)('parentId')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, Object]),
+    __metadata("design:returntype", void 0)
+], WorkspaceController.prototype, "importCollection", null);
+__decorate([
+    (0, common_1.Get)(':id/export'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], WorkspaceController.prototype, "exportWorkspace", null);
+__decorate([
+    (0, common_1.Get)('collections/:colId/export'),
+    __param(0, (0, common_1.Param)('colId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], WorkspaceController.prototype, "exportCollection", null);
 exports.WorkspaceController = WorkspaceController = __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Controller)('workspaces'),

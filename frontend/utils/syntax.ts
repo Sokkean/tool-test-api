@@ -17,9 +17,10 @@ export function syntaxHighlight(json) {
   
   return str.replace(regex, function (match, comment, key, strVal, num, bool, nul) {
     if (comment) {
-      return `<span class="text-slate-500 italic">${comment}</span>`;
+      return `<span class="text-slate-500">${comment}</span>`;
     } else if (key) {
-      return `<span class="text-syntax-key">${key}</span>:`;
+      const remainder = match.substring(key.length);
+      return `<span class="text-syntax-key">${key}</span>${remainder}`;
     } else if (strVal) {
       const isUrl = /^"https?:\/\//.test(strVal)
       const classes = isUrl ? 'text-syntax-str underline underline-offset-2' : 'text-syntax-str'

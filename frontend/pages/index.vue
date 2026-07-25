@@ -7,9 +7,13 @@
         
         <!-- Sidebar -->
         <div class="w-64 bg-slate-950 border-r border-slate-800 flex flex-col">
+          <input type="file" ref="envFileInput" @change="importEnvironment" accept=".json" class="hidden" />
           <div class="p-4 border-b border-slate-800 flex justify-between items-center shrink-0">
             <h3 class="font-semibold text-slate-200 flex items-center gap-2"><Globe class="w-4 h-4 text-blue-400" /> Environments</h3>
-            <button @click="createEnvironment" class="text-slate-400 hover:text-white" title="New Environment"><Plus class="w-4 h-4"/></button>
+            <div class="flex gap-2">
+              <button @click="triggerEnvImport" class="text-slate-400 hover:text-white" title="Import Environment"><Upload class="w-4 h-4"/></button>
+              <button @click="createEnvironment" class="text-slate-400 hover:text-white" title="New Environment"><Plus class="w-4 h-4"/></button>
+            </div>
           </div>
           <div class="flex-1 overflow-auto p-2 space-y-1 custom-scrollbar">
             <div v-for="env in environments" :key="env.id" @click="editingEnvironmentId = env.id" :class="editingEnvironmentId === env.id ? 'bg-blue-500/10 text-blue-400' : 'text-slate-400 hover:bg-slate-800/50'" class="px-3 py-2 text-sm rounded-lg cursor-pointer flex justify-between items-center group transition-colors">
@@ -76,6 +80,23 @@
       </div>
     </div>
 
+    <!-- Close Tab Confirm Modal -->
+    <div v-if="showCloseConfirmModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div class="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-md overflow-hidden shadow-2xl flex flex-col">
+        <div class="flex justify-between items-center p-4 border-b border-slate-800">
+          <h3 class="font-semibold text-lg flex items-center gap-2"><AlertTriangle class="w-5 h-5 text-amber-500" /> Unsaved Changes</h3>
+          <button @click="showCloseConfirmModal = false" class="text-slate-400 hover:text-white p-1 rounded-md hover:bg-slate-800 transition-colors"><X class="w-5 h-5"/></button>
+        </div>
+        <div class="p-6">
+          <p class="text-sm text-slate-300">You have unsaved changes in <strong class="text-white">{{ tabToClose?.name || 'this request' }}</strong>. Are you sure you want to close it without saving?</p>
+        </div>
+        <div class="p-4 border-t border-slate-800 flex justify-end gap-3 bg-slate-900/50">
+          <button @click="showCloseConfirmModal = false" class="text-slate-400 hover:text-white px-4 py-2 text-sm font-medium transition-colors">Cancel</button>
+          <button @click="confirmCloseTab" class="bg-red-600 hover:bg-red-500 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors shadow-lg shadow-red-500/20">Close Without Saving</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Tabs Bar -->
     <div v-if="workspaceStore.openRequests.length > 0" class="flex items-center overflow-x-auto bg-slate-950/80 border-b border-slate-800 custom-scrollbar shrink-0 pt-2 px-2 gap-1 h-10">
       <div v-for="tab in workspaceStore.openRequests" :key="tab.id"
@@ -84,7 +105,9 @@
            :class="workspaceStore.activeRequestId === tab.id ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-950 border-transparent text-slate-400 hover:bg-slate-900/50 hover:text-slate-300'">
         <span class="text-[10px] font-bold shrink-0" :class="methodColor(tab.method)">{{ tab.method }}</span>
         <span class="truncate text-xs flex-1">{{ tab.name }}</span>
-        <button @click.stop="handleCloseTab(tab)" class="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-slate-700 rounded transition-opacity shrink-0">
+        
+        <div v-if="workspaceStore.isRequestModified(tab.id)" class="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0 group-hover:hidden" title="Unsaved changes"></div>
+        <button @click.stop="handleCloseTab(tab)" :class="workspaceStore.isRequestModified(tab.id) ? 'hidden group-hover:block' : 'opacity-0 group-hover:opacity-100'" class="p-0.5 hover:bg-slate-700 rounded transition-opacity shrink-0">
           <X class="w-3 h-3"/>
         </button>
       </div>
@@ -187,9 +210,32 @@
           </div>
           <KeyValueEditor v-show="activeTab === 'query'" v-model="queryParams" title="Query Params" placeholder="[\n  { &quot;key&quot;: &quot;search&quot;, &quot;value&quot;: &quot;test&quot; }\n]" />
           <KeyValueEditor v-show="activeTab === 'headers'" v-model="headers" title="Headers" placeholder="[\n  { &quot;key&quot;: &quot;Authorization&quot;, &quot;value&quot;: &quot;Bearer {{token}}&quot; }\n]" />
-          <CodeEditor v-show="activeTab === 'body'" v-model="body" placeholder='{
+          <div v-show="activeTab === 'body'" class="absolute inset-0 flex flex-col bg-slate-950">
+            <div class="flex items-center gap-2 p-2 border-b border-slate-800 bg-slate-900/50">
+              <label class="flex items-center gap-1.5 cursor-pointer text-sm text-slate-300 hover:text-white transition-colors">
+                <input type="radio" v-model="bodyType" value="none" class="accent-blue-500 bg-slate-900 border-slate-700" /> none
+              </label>
+              <label class="flex items-center gap-1.5 cursor-pointer text-sm text-slate-300 hover:text-white transition-colors ml-3">
+                <input type="radio" v-model="bodyType" value="formdata" class="accent-blue-500 bg-slate-900 border-slate-700" /> form-data
+              </label>
+              <label class="flex items-center gap-1.5 cursor-pointer text-sm text-slate-300 hover:text-white transition-colors ml-3">
+                <input type="radio" v-model="bodyType" value="urlencoded" class="accent-blue-500 bg-slate-900 border-slate-700" /> x-www-form-urlencoded
+              </label>
+              <label class="flex items-center gap-1.5 cursor-pointer text-sm text-slate-300 hover:text-white transition-colors ml-3">
+                <input type="radio" v-model="bodyType" value="raw" class="accent-blue-500 bg-slate-900 border-slate-700" /> raw
+              </label>
+            </div>
+            <div class="flex-1 relative">
+              <div v-if="bodyType === 'none'" class="absolute inset-0 flex items-center justify-center text-slate-500 text-sm">
+                This request does not have a body
+              </div>
+              <KeyValueEditor v-else-if="bodyType === 'formdata'" v-model="bodyForm" title="Form Data" placeholder="[\n  { &quot;key&quot;: &quot;file&quot;, &quot;value&quot;: &quot;&quot; }\n]" />
+              <KeyValueEditor v-else-if="bodyType === 'urlencoded'" v-model="bodyUrlencoded" title="URL Encoded" placeholder="[\n  { &quot;key&quot;: &quot;name&quot;, &quot;value&quot;: &quot;john&quot; }\n]" />
+              <CodeEditor v-else-if="bodyType === 'raw'" v-model="body" placeholder='{
   "key": "value"
 }' />
+            </div>
+          </div>
           <CodeEditor v-show="activeTab === 'pre-request'" v-model="preRequestScript" placeholder="// Write JavaScript here to run before the request is sent&#10;// Example: env.set('timestamp', Date.now())" />
           <CodeEditor v-show="activeTab === 'tests'" v-model="testScript" placeholder="// Write JavaScript here to run after the response is received&#10;// Example: env.set('token', responseData.token);" />
         </div>
@@ -249,7 +295,7 @@ import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
 import { useAuthStore } from '../features/auth/stores/auth'
 import { useWorkspaceStore } from '../stores/workspace'
 import { useRouter } from 'vue-router'
-import { Search, Folder, Globe, Database, Moon, Sun, Monitor, Plus, X, AlignLeft, Send, Activity, Server, Clock, Bookmark, Trash2, Settings, Edit2, Pencil } from 'lucide-vue-next'
+import { Search, Folder, Globe, Database, Moon, Sun, Monitor, Plus, X, AlignLeft, Send, Activity, Server, Clock, Bookmark, Trash2, Settings, Edit2, Pencil, Play, Copy, Check, ChevronDown, CheckSquare, Square, Save, Upload, Download, AlertTriangle } from 'lucide-vue-next'
 import CodeEditor from '../components/CodeEditor.vue'
 import JsonViewer from '../components/JsonViewer.vue'
 import KeyValueEditor from '../components/KeyValueEditor.vue'
@@ -270,7 +316,7 @@ const urlInputRef = ref(null)
 const highlightedUrl = computed(() => {
   if (!url.value) return ''
   const escaped = url.value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-  return escaped.replace(/(\{\{[^}]+\}\})/g, '<span class="text-amber-400 font-semibold">$1</span>')
+  return escaped.replace(/(\{\{[^}]+\}\})/g, '<span class="text-amber-400">$1</span>')
 })
 
 const syncUrlScroll = (e) => {
@@ -278,9 +324,12 @@ const syncUrlScroll = (e) => {
   if (overlay) overlay.scrollLeft = e.target.scrollLeft
 }
 
-const headers = ref('{\n  "Content-Type": "application/json"\n}')
-const queryParams = ref('{}')
+const headers = ref('[]')
+const queryParams = ref('[]')
+const bodyType = ref('none')
 const body = ref('')
+const bodyForm = ref('[]')
+const bodyUrlencoded = ref('[]')
 const preRequestScript = ref('')
 const testScript = ref('')
 const activeTab = ref('query')
@@ -341,6 +390,44 @@ const deleteEnvironment = (id) => {
   if (activeEnvironmentId.value === id) activeEnvironmentId.value = environments.value[0].id
 }
 
+const envFileInput = ref(null)
+
+const triggerEnvImport = () => {
+  if (envFileInput.value) {
+    envFileInput.value.click()
+  }
+}
+
+const importEnvironment = (event) => {
+  const file = event.target.files[0]
+  if (!file) return
+  
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result)
+      if (data.name && Array.isArray(data.values)) {
+        const newEnv = {
+          id: Date.now().toString(),
+          name: data.name,
+          variables: data.values.map(v => ({ key: v.key, value: v.value }))
+        }
+        environments.value.push(newEnv)
+        activeEnvironmentId.value = newEnv.id
+        editingEnvironmentId.value = newEnv.id
+        alert('Environment imported successfully!')
+      } else {
+        alert('Invalid environment format. Expected Postman Environment JSON.')
+      }
+    } catch (err) {
+      alert('Error importing environment: ' + err.message)
+    } finally {
+      event.target.value = ''
+    }
+  }
+  reader.readAsText(file)
+}
+
 const getEnvValue = (key) => {
   const v = activeEnvironment.value.variables.find(e => e.key === key)
   if (v) return v.value
@@ -368,6 +455,22 @@ const setEnvValue = (key, value) => {
 // Save Request state
 const showSaveModal = ref(false)
 const saveRequestName = ref('')
+
+// Close Tab state
+const showCloseConfirmModal = ref(false)
+const tabToClose = ref(null)
+
+const confirmCloseTab = async () => {
+  if (tabToClose.value) {
+    if (tabToClose.value._isNew) {
+      await workspaceStore.deleteRequest(tabToClose.value.id)
+    } else {
+      workspaceStore.closeRequest(tabToClose.value.id)
+    }
+  }
+  showCloseConfirmModal.value = false
+  tabToClose.value = null
+}
 
 // Resize state
 const requestPanelHeight = ref(50)
@@ -403,6 +506,9 @@ watch(() => workspaceStore.activeRequestId, (newId, oldId) => {
       headers: headers.value,
       queryParams: queryParams.value,
       body: body.value,
+      bodyType: bodyType.value,
+      bodyForm: bodyForm.value,
+      bodyUrlencoded: bodyUrlencoded.value,
       authType: authType.value,
       authBearerToken: authBearerToken.value,
       authBasicUsername: authBasicUsername.value,
@@ -417,7 +523,11 @@ watch(() => workspaceStore.activeRequestId, (newId, oldId) => {
     url.value = newReq.url || ''
     headers.value = newReq.headers || '{\n  "Content-Type": "application/json"\n}'
     queryParams.value = newReq.queryParams || '{}'
+    
+    bodyType.value = newReq.bodyType || 'none'
     body.value = newReq.body || ''
+    bodyForm.value = newReq.bodyForm || '[]'
+    bodyUrlencoded.value = newReq.bodyUrlencoded || '[]'
     
     authType.value = newReq.authType || 'none'
     authBearerToken.value = newReq.authBearerToken || ''
@@ -538,7 +648,7 @@ watch(queryParams, (newQp) => {
   }
 }, { deep: true })
 
-watch([method, url, headers, queryParams, body, authType, authBearerToken, authBasicUsername, authBasicPassword], () => {
+watch([method, url, headers, queryParams, body, bodyType, bodyForm, bodyUrlencoded, authType, authBearerToken, authBasicUsername, authBasicPassword], () => {
   if (workspaceStore.activeRequestId && !isSwitchingTab) {
     workspaceStore.updateRequestData(workspaceStore.activeRequestId, {
       method: method.value,
@@ -546,6 +656,9 @@ watch([method, url, headers, queryParams, body, authType, authBearerToken, authB
       headers: headers.value,
       queryParams: queryParams.value,
       body: body.value,
+      bodyType: bodyType.value,
+      bodyForm: bodyForm.value,
+      bodyUrlencoded: bodyUrlencoded.value,
       authType: authType.value,
       authBearerToken: authBearerToken.value,
       authBasicUsername: authBasicUsername.value,
@@ -680,12 +793,16 @@ const sendRequest = async () => {
   const headersRaw = interpolate(headers.value)
   const queryParamsRaw = interpolate(queryParams.value)
   const bodyRaw = interpolate(body.value)
+  const bodyFormRaw = interpolate(bodyForm.value)
+  const bodyUrlencodedRaw = interpolate(bodyUrlencoded.value)
   
-  let parsedHeaders, parsedQuery, parsedBody
+  let parsedHeaders, parsedQuery, parsedBody, parsedBodyForm, parsedBodyUrlencoded
   try {
     if (headersRaw.trim()) parsedHeaders = safeJsonParse(headersRaw)
     if (queryParamsRaw.trim()) parsedQuery = safeJsonParse(queryParamsRaw)
-    if (bodyRaw.trim()) parsedBody = safeJsonParse(bodyRaw)
+    if (bodyRaw.trim() && bodyType.value === 'raw') parsedBody = safeJsonParse(bodyRaw)
+    if (bodyFormRaw.trim() && bodyType.value === 'formdata') parsedBodyForm = safeJsonParse(bodyFormRaw)
+    if (bodyUrlencodedRaw.trim() && bodyType.value === 'urlencoded') parsedBodyUrlencoded = safeJsonParse(bodyUrlencodedRaw)
   } catch (e) {
     error.value = "Invalid JSON after variable interpolation. Please check your variables and syntax."
     loading.value = false
@@ -730,7 +847,10 @@ const sendRequest = async () => {
         method: method.value,
         url: finalUrl,
         headers: finalHeaders,
+        bodyType: bodyType.value,
         body: parsedBody,
+        bodyForm: parsedBodyForm,
+        bodyUrlencoded: parsedBodyUrlencoded,
       })
     })
     
@@ -775,16 +895,26 @@ const handleSaveRequest = async () => {
       url: url.value,
       headers: headers.value,
       queryParams: queryParams.value,
-      body: body.value
-    })
-  } else {
+      body: body.value,
+      bodyType: bodyType.value,
+      bodyForm: bodyForm.value,
+      bodyUrlencoded: bodyUrlencoded.value,
+      preRequestScript: preRequestScript.value,
+      testScript: testScript.value
+    }, workspaceStore.activeRequest.id)
+  } else if (workspaceStore.activeRequest) {
     await workspaceStore.saveRequest(workspaceStore.activeCollection.id, {
       name: saveRequestName.value,
       method: method.value,
       url: url.value,
       headers: headers.value,
       queryParams: queryParams.value,
-      body: body.value
+      body: body.value,
+      bodyType: bodyType.value,
+      bodyForm: bodyForm.value,
+      bodyUrlencoded: bodyUrlencoded.value,
+      preRequestScript: preRequestScript.value,
+      testScript: testScript.value
     })
   }
   
@@ -804,7 +934,12 @@ const handleSaveAction = async () => {
       url: url.value,
       headers: headers.value,
       queryParams: queryParams.value,
-      body: body.value
+      body: body.value,
+      bodyType: bodyType.value,
+      bodyForm: bodyForm.value,
+      bodyUrlencoded: bodyUrlencoded.value,
+      preRequestScript: preRequestScript.value,
+      testScript: testScript.value
     })
     const btn = document.getElementById('save-btn')
     if (btn) {
@@ -821,16 +956,15 @@ const handleSaveAction = async () => {
 
 const handleCloseTab = async (tab) => {
   if (workspaceStore.isRequestModified(tab.id)) {
-    if (!confirm(`You have unsaved changes in "${tab.name}". Are you sure you want to close it and discard your changes?`)) {
-      return
-    }
-  }
-  
-  if (tab._isNew) {
-    // If it's a new request that was never saved, delete it to prevent polluting the workspace
-    await workspaceStore.deleteRequest(tab.id)
+    tabToClose.value = tab
+    showCloseConfirmModal.value = true
   } else {
-    workspaceStore.closeRequest(tab.id)
+    if (tab._isNew) {
+      // If it's a new request that was never saved, delete it to prevent polluting the workspace
+      await workspaceStore.deleteRequest(tab.id)
+    } else {
+      workspaceStore.closeRequest(tab.id)
+    }
   }
 }
 </script>

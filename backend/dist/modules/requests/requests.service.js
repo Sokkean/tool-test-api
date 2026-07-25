@@ -29,11 +29,30 @@ let RequestsService = class RequestsService {
                     }
                 }
             }
+            let finalData = requestData.body;
+            if (requestData.bodyType === 'urlencoded' && requestData.bodyUrlencoded) {
+                const searchParams = new URLSearchParams();
+                requestData.bodyUrlencoded.forEach(item => {
+                    if (item.enabled !== false && item.key) {
+                        searchParams.append(item.key, item.value || '');
+                    }
+                });
+                finalData = searchParams;
+            }
+            else if (requestData.bodyType === 'formdata' && requestData.bodyForm) {
+                const formData = new FormData();
+                requestData.bodyForm.forEach(item => {
+                    if (item.enabled !== false && item.key) {
+                        formData.append(item.key, item.value || '');
+                    }
+                });
+                finalData = formData;
+            }
             const response = await (0, axios_1.default)({
                 method: requestData.method || 'GET',
                 url: requestData.url,
                 headers: sanitizedHeaders,
-                data: requestData.body,
+                data: finalData,
             });
             const endTime = Date.now();
             const result = {

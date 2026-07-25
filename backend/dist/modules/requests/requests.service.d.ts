@@ -6,7 +6,18 @@ export declare class RequestsService {
         method: string;
         url: string;
         headers?: Record<string, string>;
+        bodyType?: string;
         body?: any;
+        bodyForm?: Array<{
+            key: string;
+            value: string;
+            enabled?: boolean;
+        }>;
+        bodyUrlencoded?: Array<{
+            key: string;
+            value: string;
+            enabled?: boolean;
+        }>;
         requestItemId?: number;
     }): Promise<{
         status: any;
