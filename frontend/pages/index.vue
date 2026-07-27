@@ -208,8 +208,8 @@
               This request does not use any authorization.
             </div>
           </div>
-          <KeyValueEditor v-show="activeTab === 'query'" v-model="queryParams" title="Query Params" placeholder="[\n  { &quot;key&quot;: &quot;search&quot;, &quot;value&quot;: &quot;test&quot; }\n]" />
-          <KeyValueEditor v-show="activeTab === 'headers'" v-model="headers" title="Headers" placeholder="[\n  { &quot;key&quot;: &quot;Authorization&quot;, &quot;value&quot;: &quot;Bearer {{token}}&quot; }\n]" />
+          <KeyValueEditor v-show="activeTab === 'query'" v-model="queryParams" title="Query Params" :error="queryParamsError" placeholder="[\n  { &quot;key&quot;: &quot;search&quot;, &quot;value&quot;: &quot;test&quot; }\n]" />
+          <KeyValueEditor v-show="activeTab === 'headers'" v-model="headers" title="Headers" :error="headersError" placeholder="[\n  { &quot;key&quot;: &quot;Authorization&quot;, &quot;value&quot;: &quot;Bearer {{token}}&quot; }\n]" />
           <div v-show="activeTab === 'body'" class="absolute inset-0 flex flex-col bg-slate-950">
             <div class="flex items-center gap-2 p-2 border-b border-slate-800 bg-slate-900/50">
               <label class="flex items-center gap-1.5 cursor-pointer text-sm text-slate-300 hover:text-white transition-colors">
@@ -229,15 +229,15 @@
               <div v-if="bodyType === 'none'" class="absolute inset-0 flex items-center justify-center text-slate-500 text-sm">
                 This request does not have a body
               </div>
-              <KeyValueEditor v-else-if="bodyType === 'formdata'" v-model="bodyForm" title="Form Data" placeholder="[\n  { &quot;key&quot;: &quot;file&quot;, &quot;value&quot;: &quot;&quot; }\n]" />
-              <KeyValueEditor v-else-if="bodyType === 'urlencoded'" v-model="bodyUrlencoded" title="URL Encoded" placeholder="[\n  { &quot;key&quot;: &quot;name&quot;, &quot;value&quot;: &quot;john&quot; }\n]" />
+              <KeyValueEditor v-else-if="bodyType === 'formdata'" v-model="bodyForm" title="Form Data" :error="bodyFormError" placeholder="[\n  { &quot;key&quot;: &quot;file&quot;, &quot;value&quot;: &quot;&quot; }\n]" />
+              <KeyValueEditor v-else-if="bodyType === 'urlencoded'" v-model="bodyUrlencoded" title="URL Encoded" :error="bodyUrlencodedError" placeholder="[\n  { &quot;key&quot;: &quot;name&quot;, &quot;value&quot;: &quot;john&quot; }\n]" />
               <CodeEditor v-else-if="bodyType === 'raw'" v-model="body" placeholder='{
   "key": "value"
 }' />
             </div>
           </div>
-          <CodeEditor v-show="activeTab === 'pre-request'" v-model="preRequestScript" placeholder="// Write JavaScript here to run before the request is sent&#10;// Example: env.set('timestamp', Date.now())" />
-          <CodeEditor v-show="activeTab === 'tests'" v-model="testScript" placeholder="// Write JavaScript here to run after the response is received&#10;// Example: env.set('token', responseData.token);" />
+          <CodeEditor v-show="activeTab === 'pre-request'" v-model="preRequestScript" placeholder="// Write JavaScript here to run before the request is sent&#10;// Example: pm.environment.set('timestamp', Date.now())" />
+          <CodeEditor v-show="activeTab === 'tests'" v-model="testScript" placeholder="// Write JavaScript here to run after the response is received&#10;// Example: pm.environment.set('token', responseData.token);" />
         </div>
       </div>
 
@@ -345,6 +345,11 @@ const stripJsonComments = (str) => {
 const safeJsonParse = (str) => {
   return JSON.parse(stripJsonComments(str))
 }
+
+const queryParamsError = computed(() => { try { if (queryParams.value.trim()) safeJsonParse(queryParams.value); return false } catch { return true } })
+const headersError = computed(() => { try { if (headers.value.trim()) safeJsonParse(headers.value); return false } catch { return true } })
+const bodyFormError = computed(() => { try { if (bodyForm.value.trim()) safeJsonParse(bodyForm.value); return false } catch { return true } })
+const bodyUrlencodedError = computed(() => { try { if (bodyUrlencoded.value.trim()) safeJsonParse(bodyUrlencoded.value); return false } catch { return true } })
 
 const formatActiveTabJson = () => {
   try {
@@ -774,12 +779,32 @@ const sendRequest = async () => {
     set: setEnvValue,
     get: getEnvValue
   }
+  
+  // Postman compatibility object
+  const pm = {
+    environment: {
+      set: setEnvValue,
+      get: getEnvValue
+    },
+    variables: {
+      set: setEnvValue,
+      get: getEnvValue
+    },
+    globals: {
+      set: setEnvValue,
+      get: getEnvValue
+    },
+    collectionVariables: {
+      set: setEnvValue,
+      get: getEnvValue
+    }
+  }
 
   // Execute pre-request script
   if (preRequestScript.value && preRequestScript.value.trim()) {
     try {
-      const preFn = new Function('env', preRequestScript.value)
-      preFn(envObj)
+      const preFn = new Function('env', 'pm', preRequestScript.value)
+      preFn(envObj, pm)
     } catch (err) {
       error.value = "Pre-request Script Error: " + err.message
       loading.value = false
@@ -800,13 +825,21 @@ const sendRequest = async () => {
   try {
     if (headersRaw.trim()) parsedHeaders = safeJsonParse(headersRaw)
     if (queryParamsRaw.trim()) parsedQuery = safeJsonParse(queryParamsRaw)
-    if (bodyRaw.trim() && bodyType.value === 'raw') parsedBody = safeJsonParse(bodyRaw)
     if (bodyFormRaw.trim() && bodyType.value === 'formdata') parsedBodyForm = safeJsonParse(bodyFormRaw)
     if (bodyUrlencodedRaw.trim() && bodyType.value === 'urlencoded') parsedBodyUrlencoded = safeJsonParse(bodyUrlencodedRaw)
   } catch (e) {
-    error.value = "Invalid JSON after variable interpolation. Please check your variables and syntax."
+    error.value = "Invalid JSON in Headers, Query Params, or Form Data. Please check your syntax."
     loading.value = false
     return
+  }
+
+  // Allow sending invalid JSON or plain text in the raw body
+  if (bodyRaw.trim() && bodyType.value === 'raw') {
+    try {
+      parsedBody = safeJsonParse(bodyRaw)
+    } catch (e) {
+      parsedBody = bodyRaw // Fallback to sending it as a raw string
+    }
   }
 
   let finalUrl = finalUrlRaw
@@ -827,6 +860,18 @@ const sendRequest = async () => {
     parsedHeaders.forEach(h => { if (h.enabled !== false && h.key) finalHeaders[h.key] = h.value })
   }
   if (!finalHeaders) finalHeaders = {}
+
+  // Auto-inject Content-Type for raw body if not present
+  if (bodyRaw.trim() && bodyType.value === 'raw') {
+    const hasContentType = Object.keys(finalHeaders).some(k => k.toLowerCase() === 'content-type')
+    if (!hasContentType) {
+      if (typeof parsedBody === 'object' || bodyRaw.trim().startsWith('{') || bodyRaw.trim().startsWith('[')) {
+        finalHeaders['Content-Type'] = 'application/json'
+      } else {
+        finalHeaders['Content-Type'] = 'text/plain'
+      }
+    }
+  }
 
   // Inject Authorization Header
   if (authType.value === 'bearer' && authBearerToken.value) {
@@ -859,8 +904,8 @@ const sendRequest = async () => {
       try {
         const responseData = response.value.data;
         const responseBody = typeof responseData === 'object' ? JSON.stringify(responseData) : String(responseData);
-        const testFn = new Function('env', 'responseData', 'responseBody', testScript.value)
-        testFn(envObj, responseData, responseBody)
+        const testFn = new Function('env', 'pm', 'responseData', 'responseBody', testScript.value)
+        testFn(envObj, pm, responseData, responseBody)
       } catch (err) {
         error.value = "Test Script Error: " + err.message
       }

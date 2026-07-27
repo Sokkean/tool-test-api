@@ -115,6 +115,14 @@
         </div>
       </div>
 
+      <!-- Advanced Settings -->
+      <div class="p-4 border-t border-slate-800 bg-slate-900/50 flex flex-col gap-3 shrink-0">
+        <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2"><Settings class="w-4 h-4"/> System</span>
+        <button @click="clearCache" class="flex items-center justify-center gap-2 w-full py-1.5 text-xs font-medium rounded-md transition-all bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 shadow-sm outline-none">
+          <Trash2 class="w-3.5 h-3.5" /> Clear Cache
+        </button>
+      </div>
+
       <!-- Resizer Handle -->
       <div @mousedown="startResize" class="absolute top-0 -right-1 bottom-0 w-2 cursor-col-resize z-50 group flex justify-center">
         <div class="h-full w-0.5 bg-blue-500/0 group-hover:bg-blue-500/50 transition-colors"></div>
@@ -195,7 +203,7 @@ import { ref, onMounted, provide } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../features/auth/stores/auth'
 import { useWorkspaceStore } from '../stores/workspace'
-import { Folder, LogOut, Plus, ChevronRight, Database, Layers, Palette, MoreVertical, Edit2, Copy, Trash2, Users, X, FilePlus, FolderPlus, Upload, Download } from 'lucide-vue-next'
+import { Folder, LogOut, Plus, ChevronRight, Database, Layers, Palette, MoreVertical, Edit2, Copy, Trash2, Users, X, FilePlus, FolderPlus, Upload, Download, Settings } from 'lucide-vue-next'
 import FolderTreeItem from '../components/FolderTreeItem.vue'
 import { useState } from '#app'
 
@@ -244,6 +252,40 @@ const stopResize = () => {
   document.body.style.userSelect = ''
   document.body.style.cursor = ''
   localStorage.setItem('sidebar-width', sidebarWidth.value)
+}
+
+const clearCache = () => {
+  if (confirm('Are you sure you want to clear local cache? This will reset themes and active workspaces.')) {
+    const token = localStorage.getItem('token')
+    const user = localStorage.getItem('user')
+    const environments = localStorage.getItem('environments')
+    const globalEnvironment = localStorage.getItem('globalEnvironment')
+    const activeEnvironmentId = localStorage.getItem('activeEnvironmentId')
+    
+    // Backup scripts
+    const scripts = {}
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (key && (key.startsWith('req-') && (key.endsWith('-pre') || key.endsWith('-test')))) {
+        scripts[key] = localStorage.getItem(key)
+      }
+    }
+    
+    localStorage.clear()
+    
+    if (token) localStorage.setItem('token', token)
+    if (user) localStorage.setItem('user', user)
+    if (environments) localStorage.setItem('environments', environments)
+    if (globalEnvironment) localStorage.setItem('globalEnvironment', globalEnvironment)
+    if (activeEnvironmentId) localStorage.setItem('activeEnvironmentId', activeEnvironmentId)
+    
+    // Restore scripts
+    for (const [key, value] of Object.entries(scripts)) {
+      localStorage.setItem(key, value)
+    }
+    
+    window.location.reload()
+  }
 }
 
 const fileInput = ref(null)

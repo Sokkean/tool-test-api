@@ -74,16 +74,33 @@ async function handleSubmit() {
       body: JSON.stringify(payload)
     })
     
-    const data = await res.json()
+    let data;
+    const text = await res.text();
+    try {
+      data = JSON.parse(text);
+    } catch(e) {
+      // Response was not JSON
+    }
+
     if (!res.ok) {
-      error.value = data.message || 'Authentication failed'
+      if (data) {
+        if (data.message) {
+          error.value = Array.isArray(data.message) ? data.message.join(', ') : data.message;
+        } else if (data.error) {
+          error.value = data.error;
+        } else {
+          error.value = text || 'Authentication failed';
+        }
+      } else {
+        error.value = text || 'Authentication failed';
+      }
       return
     }
     
     authStore.setAuth(data.user, data.access_token)
     router.push('/')
   } catch (e) {
-    error.value = 'Failed to connect to server'
+    error.value = e.message || 'Failed to connect to server'
   } finally {
     loading.value = false
   }

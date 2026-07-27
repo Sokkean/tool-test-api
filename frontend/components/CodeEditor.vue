@@ -1,5 +1,5 @@
 <template>
-  <div class="relative w-full h-full font-mono text-sm overflow-hidden bg-transparent group">
+  <div class="relative w-full h-full font-mono text-sm overflow-hidden transition-colors duration-200 group" :class="error ? 'bg-red-500/5 ring-1 ring-inset ring-red-500/40' : 'bg-transparent'">
     <!-- Highlighted Output -->
     <pre 
       class="absolute inset-0 pointer-events-none p-4 m-0 border-0 border-transparent whitespace-pre-wrap break-all overflow-hidden text-slate-300 custom-scrollbar"
@@ -33,6 +33,10 @@ const props = defineProps({
   placeholder: {
     type: String,
     default: ''
+  },
+  error: {
+    type: Boolean,
+    default: false
   }
 })
 

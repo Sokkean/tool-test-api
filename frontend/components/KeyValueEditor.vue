@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col h-full bg-slate-950 text-sm text-slate-300">
+  <div class="flex flex-col h-full bg-slate-950 text-sm text-slate-300 transition-colors duration-200" :class="error ? 'bg-red-500/5 ring-1 ring-inset ring-red-500/40' : ''">
     <!-- Header -->
     <div class="flex items-center justify-between px-4 py-2 border-b border-slate-800 bg-slate-900/50">
       <span class="text-xs font-medium text-slate-500">{{ title }}</span>
@@ -46,7 +46,7 @@
 
     <!-- Bulk Edit (CodeEditor) -->
     <div v-else class="flex-1 relative">
-      <CodeEditor :modelValue="modelValue" @update:modelValue="onBulkEdit" :placeholder="placeholder" />
+      <CodeEditor :modelValue="modelValue" @update:modelValue="onBulkEdit" :placeholder="placeholder" :error="error" />
     </div>
   </div>
 </template>
@@ -59,7 +59,8 @@ import CodeEditor from './CodeEditor.vue'
 const props = defineProps({
   modelValue: { type: String, default: '[]' },
   title: { type: String, default: 'Params' },
-  placeholder: { type: String, default: '' }
+  placeholder: { type: String, default: '' },
+  error: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['update:modelValue'])

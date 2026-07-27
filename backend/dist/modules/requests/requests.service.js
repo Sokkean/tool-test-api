@@ -87,7 +87,13 @@ let RequestsService = class RequestsService {
                     timeMs: endTime - startTime,
                 };
             }
-            throw error;
+            return {
+                status: 0,
+                statusText: 'Network Error',
+                headers: {},
+                data: error.message || 'Failed to connect to the target URL',
+                timeMs: endTime - startTime,
+            };
         }
     }
 };

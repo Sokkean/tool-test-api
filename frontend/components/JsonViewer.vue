@@ -27,7 +27,8 @@
         </div>
       </div>
     </template>
-    <div v-else class="text-red-400 italic px-6">Invalid JSON data</div>
+    <div v-else-if="data !== undefined" class="px-6 whitespace-pre-wrap break-all font-mono text-slate-300">{{ data }}</div>
+    <div v-else class="text-slate-500 italic px-6">No data</div>
   </div>
 </template>
 
