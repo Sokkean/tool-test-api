@@ -98,7 +98,7 @@
     </div>
 
     <!-- Tabs Bar -->
-    <div v-if="workspaceStore.openRequests.length > 0" class="flex items-center overflow-x-auto bg-slate-950/80 border-b border-slate-800 custom-scrollbar shrink-0 pt-2 px-2 gap-1 h-10">
+    <div class="flex items-center overflow-x-auto bg-slate-950/80 border-b border-slate-800 custom-scrollbar shrink-0 pt-2 px-2 gap-1 h-10">
       <div v-for="tab in workspaceStore.openRequests" :key="tab.id"
            @click="workspaceStore.selectRequest(tab)"
            class="group flex items-center gap-2 px-3 py-1.5 min-w-[120px] max-w-[200px] border border-b-0 rounded-t-lg cursor-pointer transition-colors"
@@ -111,6 +111,9 @@
           <X class="w-3 h-3"/>
         </button>
       </div>
+      <button @click="workspaceStore.openNewTab()" class="ml-1 p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-colors shrink-0 flex items-center justify-center" title="New Request">
+        <Plus class="w-4 h-4" />
+      </button>
     </div>
 
     <template v-if="workspaceStore.activeRequest">
@@ -150,10 +153,12 @@
         class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-6 h-10 rounded-lg font-medium transition-colors border border-slate-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shrink-0 w-[105px] justify-center">
         <Bookmark class="w-4 h-4" /> Save
       </button>
-      <button @click="sendRequest" :disabled="loading" 
-        class="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white px-8 h-10 rounded-lg font-medium transition-all shadow-lg shadow-blue-500/25 flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none shrink-0">
-        <Activity class="w-4 h-4" :class="{ 'animate-pulse': loading }" />
-        {{ loading ? 'Sending...' : 'Send' }}
+      <button @click="sendRequest"
+        class="text-white px-8 h-10 rounded-lg font-medium transition-all shadow-lg flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98] shrink-0"
+        :class="loading ? 'bg-red-500 hover:bg-red-600 shadow-red-500/25' : 'bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 shadow-blue-500/25'">
+        <X v-if="loading" class="w-4 h-4" />
+        <Activity v-else class="w-4 h-4" />
+        {{ loading ? 'Cancel' : 'Send' }}
       </button>
     </div>
 
@@ -285,7 +290,10 @@
     <div v-else class="flex-1 flex flex-col items-center justify-center text-slate-500 bg-slate-950">
       <Activity class="w-16 h-16 opacity-20 mb-4" />
       <h2 class="text-xl font-medium text-slate-300 mb-2">No Request Selected</h2>
-      <p class="text-sm">Select a request from the sidebar or click + to create one.</p>
+      <p class="text-sm mb-4">Select a request from the sidebar or click + to create one.</p>
+      <button @click="workspaceStore.openNewTab()" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-blue-500/25 flex items-center gap-2">
+        <Plus class="w-4 h-4" /> New Request
+      </button>
     </div>
   </div>
 </template>
@@ -367,6 +375,7 @@ const formatActiveTabJson = () => {
 }
 
 const loading = ref(false)
+let currentRequestController = null
 const error = ref(null)
 const response = ref(null)
 const responseTab = ref('pretty')
@@ -769,10 +778,19 @@ const statusDotClass = computed(() => {
 })
 
 const sendRequest = async () => {
+  if (loading.value) {
+    if (currentRequestController) {
+      currentRequestController.abort()
+    }
+    return
+  }
+
   if (!url.value) return
   loading.value = true
   error.value = null
   response.value = null
+
+  currentRequestController = new AbortController()
   
   // Sandbox environment object for scripts
   const envObj = {
@@ -888,6 +906,7 @@ const sendRequest = async () => {
     response.value = await fetchApi('/proxy', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: currentRequestController.signal,
       body: JSON.stringify({
         method: method.value,
         url: finalUrl,
@@ -899,6 +918,15 @@ const sendRequest = async () => {
       })
     })
     
+    // Auto-extract token on login
+    if (finalUrl.toLowerCase().includes('login') && response.value && response.value.data) {
+      const data = response.value.data;
+      const extractedToken = data.token || data.accessToken || data.access_token;
+      if (extractedToken) {
+        setEnvValue('token', extractedToken);
+      }
+    }
+
     // Execute test script
     if (testScript.value && testScript.value.trim() && response.value && response.value.data) {
       try {
@@ -918,7 +946,11 @@ const sendRequest = async () => {
       })
     }
   } catch (e) {
-    error.value = e.message || "Failed to connect to backend proxy"
+    if (e.name === 'AbortError') {
+      error.value = "Request cancelled"
+    } else {
+      error.value = e.message || "Failed to connect to backend proxy"
+    }
     if (workspaceStore.activeRequestId) {
       workspaceStore.updateRequestData(workspaceStore.activeRequestId, {
         response: null,
@@ -927,6 +959,7 @@ const sendRequest = async () => {
     }
   } finally {
     loading.value = false
+    currentRequestController = null
   }
 }
 

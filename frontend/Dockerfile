@@ -13,7 +13,8 @@ COPY . .
 RUN npm run build
 
 # Expose the application port
-EXPOSE 3000
+EXPOSE 3003
+ENV PORT=3003
 
 # Start the Nuxt production server
 CMD ["node", ".output/server/index.mjs"]

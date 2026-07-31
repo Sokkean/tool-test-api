@@ -450,6 +450,26 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     selectRequest(savedReq)
   }
 
+  const openNewTab = () => {
+    const tempId = `temp-${Date.now()}`
+    const newReq = {
+      id: tempId,
+      name: 'Untitled Request',
+      method: 'GET',
+      url: '{{url}}/',
+      headers: '[\n  { "key": "Content-Type", "value": "application/json" }\n]',
+      queryParams: '[]',
+      body: '{}',
+      bodyType: 'none',
+      bodyForm: '[]',
+      bodyUrlencoded: '[]',
+      _isNew: true,
+      _isTemp: true
+    }
+    openRequests.value.push(newReq)
+    activeRequestId.value = tempId
+  }
+
   const importCollection = async (workspaceId, collectionData, parentId = null) => {
     const authStore = useAuthStore()
     const config = useRuntimeConfig()
@@ -545,6 +565,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     saveRequestChanges,
     renameRequest,
     deleteRequest,
+    openNewTab,
     importCollection,
     importGlobalCollection,
     exportWorkspace,

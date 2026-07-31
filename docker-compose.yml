@@ -42,7 +42,7 @@ services:
       dockerfile: Dockerfile
     container_name: tool_testing_frontend
     ports:
-      - "3000:3000"
+      - "3003:3003"
     restart: unless-stopped
 
 volumes:
