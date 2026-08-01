@@ -13,8 +13,8 @@ export class WorkspaceController {
   }
 
   @Get()
-  getWorkspaces(@Request() req: any) {
-    return this.workspaceService.getWorkspaces(req.user.id);
+  getWorkspaces(@Request() req: any, @Query('search') search?: string) {
+    return this.workspaceService.getWorkspaces(req.user.id, search);
   }
 
   @Post('import')

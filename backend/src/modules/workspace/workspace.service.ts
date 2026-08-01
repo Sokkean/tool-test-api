@@ -11,16 +11,35 @@ export class WorkspaceService {
     });
   }
 
-  async getWorkspaces(userId: number) {
-    return this.prisma.workspace.findMany({
-      where: {
+  async getWorkspaces(userId: number, search?: string) {
+    const baseCondition = {
+      OR: [
+        { userId },
+        { members: { some: { userId } } }
+      ]
+    };
+
+    const where: any = {
+      AND: [baseCondition]
+    };
+
+    if (search) {
+      where.AND.push({
         OR: [
-          { userId },
-          { members: { some: { userId } } }
+          { name: { contains: search, mode: 'insensitive' } },
+          { collections: { some: { name: { contains: search, mode: 'insensitive' } } } },
+          { collections: { some: { requests: { some: { name: { contains: search, mode: 'insensitive' } } } } } },
+          { collections: { some: { requests: { some: { url: { contains: search, mode: 'insensitive' } } } } } }
         ]
-      },
+      });
+    }
+
+    return this.prisma.workspace.findMany({
+      where,
       include: { 
-        collections: true,
+        collections: {
+          include: { requests: true }
+        },
         members: {
           include: {
             user: { select: { id: true, email: true, name: true } }

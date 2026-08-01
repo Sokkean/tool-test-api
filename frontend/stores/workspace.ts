@@ -9,6 +9,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const activeCollection = ref(null)
   const openRequests = ref([])
   const activeRequestId = ref(null)
+  const searchQuery = ref('')
 
   const activeRequest = computed(() => openRequests.value.find(r => r.id === activeRequestId.value) || null)
 
@@ -16,7 +17,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const authStore = useAuthStore()
     const config = useRuntimeConfig()
     try {
-      const res = await fetch(`${config.public.apiBaseUrl}/workspaces`, {
+      let url = `${config.public.apiBaseUrl}/workspaces`
+      if (searchQuery.value) {
+        url += `?search=${encodeURIComponent(searchQuery.value)}`
+      }
+      const res = await fetch(url, {
         headers: { 'Authorization': `Bearer ${authStore.token}` }
       })
       if (res.status === 401) {
@@ -32,6 +37,28 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         const map = new Map()
         ws.collections.forEach(c => {
           c.children = []
+          if (c.requests) {
+            c.requests = c.requests.map(req => {
+              if (req.body) {
+                try {
+                  const p = JSON.parse(req.body)
+                  if (p && p._bodyType) {
+                    req.bodyType = p._bodyType
+                    req.body = p.raw || ''
+                    req.bodyForm = p.formdata || '[]'
+                    req.bodyUrlencoded = p.urlencoded || '[]'
+                  } else {
+                    req.bodyType = 'raw'
+                  }
+                } catch(e) {
+                  req.bodyType = 'raw'
+                }
+              } else {
+                req.bodyType = 'none'
+              }
+              return req
+            })
+          }
           map.set(c.id, c)
         })
         const roots = []
@@ -62,6 +89,43 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       console.error(e)
     }
   }
+
+  const filteredWorkspaces = computed(() => {
+    if (!searchQuery.value) return workspaces.value
+    const q = searchQuery.value.toLowerCase()
+    const copy = JSON.parse(JSON.stringify(workspaces.value))
+    
+    return copy.filter(ws => {
+      let hasMatch = false
+      if (ws.name.toLowerCase().includes(q)) hasMatch = true
+      
+      const filterTree = (collections) => {
+        return collections.filter(c => {
+          let keep = false
+          if (c.name.toLowerCase().includes(q)) keep = true
+          
+          if (c.requests) {
+            c.requests = c.requests.filter(r => 
+              r.name.toLowerCase().includes(q) || r.url.toLowerCase().includes(q)
+            )
+            if (c.requests.length > 0) keep = true
+          }
+          
+          if (c.children) {
+            c.children = filterTree(c.children)
+            if (c.children.length > 0) keep = true
+          }
+          
+          return keep
+        })
+      }
+      
+      ws.treeCollections = filterTree(ws.treeCollections || [])
+      if (ws.treeCollections.length > 0) hasMatch = true
+      
+      return hasMatch
+    })
+  })
 
   const createWorkspace = async (name) => {
     const authStore = useAuthStore()
@@ -538,11 +602,13 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
   return {
     workspaces,
+    filteredWorkspaces,
     activeWorkspace,
     activeCollection,
     activeRequestId,
     openRequests,
     activeRequest,
+    searchQuery,
     selectRequest,
     closeRequest,
     isRequestModified,

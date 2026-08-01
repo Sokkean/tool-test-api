@@ -100,7 +100,7 @@
 </template>
 
 <script setup>
-import { ref, defineProps, defineEmits, inject } from 'vue'
+import { ref, defineProps, defineEmits, inject, watch } from 'vue'
 import { useWorkspaceStore } from '../stores/workspace'
 import { Folder, ChevronRight, MoreVertical, Edit2, Copy, Trash2, FilePlus, FolderPlus, Plus, Download, Upload } from 'lucide-vue-next'
 
@@ -116,6 +116,12 @@ const workspaceStore = useWorkspaceStore()
 const triggerCollectionImport = inject('triggerCollectionImport')
 
 const isExpanded = ref(false)
+
+watch(() => workspaceStore.searchQuery, (newVal) => {
+  if (newVal) {
+    isExpanded.value = true
+  }
+})
 const isCreatingSub = ref(false)
 const newSubName = ref('')
 

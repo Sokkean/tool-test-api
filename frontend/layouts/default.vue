@@ -22,9 +22,20 @@
           <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-2 pl-1">
             <Layers class="w-4 h-4" /> Explorer
           </div>
+
+          <div class="mb-3 px-1">
+            <div class="relative">
+              <Search class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
+              <input v-model="workspaceStore.searchQuery" 
+                     @keyup.enter="workspaceStore.loadWorkspaces()" 
+                     placeholder="Search workspaces..." 
+                     class="w-full bg-slate-950/50 border border-slate-800 text-slate-300 pl-8 pr-2 py-1.5 rounded-md text-xs focus:outline-none focus:border-indigo-500 transition-colors placeholder:text-slate-600" />
+            </div>
+          </div>
+
           <ul class="space-y-1">
             <!-- Workspace Level -->
-            <li v-for="ws in workspaceStore.workspaces" :key="ws.id" class="flex flex-col gap-1">
+            <li v-for="ws in workspaceStore.filteredWorkspaces" :key="ws.id" class="flex flex-col gap-1">
               <div class="px-2 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center justify-between group relative"
                   :class="workspaceStore.activeWorkspace?.id === ws.id ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'">
                 <div @click="toggleWorkspace(ws)" class="flex items-center gap-2 truncate cursor-pointer flex-1 min-w-0">
@@ -199,11 +210,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, provide } from 'vue'
+import { ref, onMounted, provide, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../features/auth/stores/auth'
 import { useWorkspaceStore } from '../stores/workspace'
-import { Folder, LogOut, Plus, ChevronRight, Database, Layers, Palette, MoreVertical, Edit2, Copy, Trash2, Users, X, FilePlus, FolderPlus, Upload, Download, Settings } from 'lucide-vue-next'
+import { Folder, LogOut, Plus, ChevronRight, Database, Layers, Palette, MoreVertical, Edit2, Copy, Trash2, Users, X, FilePlus, FolderPlus, Upload, Download, Settings, Search } from 'lucide-vue-next'
 import FolderTreeItem from '../components/FolderTreeItem.vue'
 import { useState } from '#app'
 
@@ -223,6 +234,13 @@ const isInviting = ref(false)
 const inviteError = ref('')
 
 const expandedWorkspaces = ref(new Set())
+
+watch(() => workspaceStore.searchQuery, (newVal) => {
+  if (newVal) {
+    workspaceStore.filteredWorkspaces.forEach(ws => expandedWorkspaces.value.add(ws.id))
+  }
+})
+
 const expandedCollections = ref(new Set())
 
 const sidebarWidth = ref(256)

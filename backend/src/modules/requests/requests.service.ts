@@ -6,18 +6,13 @@ import { PrismaService } from '../../database/prisma/prisma.service';
 export class RequestsService {
   constructor(private prisma: PrismaService) {}
 
-  async executeRequest(requestData: {
-    method: string;
-    url: string;
-    headers?: Record<string, string>;
-    bodyType?: string;
-    body?: any;
-    bodyForm?: Array<{key: string; value: string; enabled?: boolean}>;
-    bodyUrlencoded?: Array<{key: string; value: string; enabled?: boolean}>;
-    requestItemId?: number;
-  }) {
+  async executeRequest(requestData: any, files?: Array<Express.Multer.File>) {
     const startTime = Date.now();
     try {
+      if (typeof requestData.headers === 'string') {
+        try { requestData.headers = JSON.parse(requestData.headers); } catch (e) {}
+      }
+      
       const sanitizedHeaders: Record<string, string> = {};
       if (requestData.headers) {
         for (const [key, value] of Object.entries(requestData.headers)) {
@@ -30,22 +25,64 @@ export class RequestsService {
       }
 
       let finalData = requestData.body;
+      if (typeof finalData === 'string' && requestData.bodyType !== 'raw') {
+        try { finalData = JSON.parse(finalData); } catch (e) {}
+      }
+
       if (requestData.bodyType === 'urlencoded' && requestData.bodyUrlencoded) {
-        const searchParams = new URLSearchParams();
-        requestData.bodyUrlencoded.forEach(item => {
-          if (item.enabled !== false && item.key) {
-            searchParams.append(item.key, item.value || '');
-          }
-        });
-        finalData = searchParams;
-      } else if (requestData.bodyType === 'formdata' && requestData.bodyForm) {
-        // Node 18+ has built-in FormData
+        let urlencodedData = requestData.bodyUrlencoded;
+        if (typeof urlencodedData === 'string') {
+          try { urlencodedData = JSON.parse(urlencodedData); } catch (e) {}
+        }
+        if (Array.isArray(urlencodedData)) {
+          const searchParams = new URLSearchParams();
+          urlencodedData.forEach(item => {
+            if (item.enabled !== false && item.key) {
+              searchParams.append(item.key, item.value || '');
+            }
+          });
+          finalData = searchParams;
+        }
+      } else if (requestData.bodyType === 'formdata') {
         const formData = new FormData();
-        requestData.bodyForm.forEach(item => {
-          if (item.enabled !== false && item.key) {
-            formData.append(item.key, item.value || '');
+        
+        if (requestData.bodyFormFields) {
+          // New multipart/form-data flow from frontend
+          let formFields = [];
+          if (typeof requestData.bodyFormFields === 'string') {
+            try { formFields = JSON.parse(requestData.bodyFormFields); } catch (e) {}
           }
-        });
+          
+          if (Array.isArray(formFields)) {
+            formFields.forEach((field, index) => {
+              if (field.type === 'file') {
+                // Find file in uploaded files
+                const file = files?.find(f => f.fieldname === `file_${index}`);
+                if (file) {
+                  // Node 18+ FormData requires Blob/File, so we create a Blob from buffer
+                  const blob = new Blob([file.buffer as any], { type: file.mimetype });
+                  formData.append(field.key, blob, file.originalname);
+                }
+              } else {
+                formData.append(field.key, requestData[`text_${index}`] || '');
+              }
+            });
+          }
+        } else if (requestData.bodyForm) {
+          // Legacy flow
+          let formFields = requestData.bodyForm;
+          if (typeof formFields === 'string') {
+            try { formFields = JSON.parse(formFields); } catch (e) {}
+          }
+          if (Array.isArray(formFields)) {
+            formFields.forEach(item => {
+              if (item.enabled !== false && item.key) {
+                formData.append(item.key, item.value || '');
+              }
+            });
+          }
+        }
+        
         finalData = formData;
       }
 

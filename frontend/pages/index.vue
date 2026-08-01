@@ -234,7 +234,7 @@
               <div v-if="bodyType === 'none'" class="absolute inset-0 flex items-center justify-center text-slate-500 text-sm">
                 This request does not have a body
               </div>
-              <KeyValueEditor v-else-if="bodyType === 'formdata'" v-model="bodyForm" title="Form Data" :error="bodyFormError" placeholder="[\n  { &quot;key&quot;: &quot;file&quot;, &quot;value&quot;: &quot;&quot; }\n]" />
+              <FormDataEditor v-else-if="bodyType === 'formdata'" v-model="bodyForm" title="Form Data" :error="bodyFormError" @update:files="onFilesUpdate" />
               <KeyValueEditor v-else-if="bodyType === 'urlencoded'" v-model="bodyUrlencoded" title="URL Encoded" :error="bodyUrlencodedError" placeholder="[\n  { &quot;key&quot;: &quot;name&quot;, &quot;value&quot;: &quot;john&quot; }\n]" />
               <CodeEditor v-else-if="bodyType === 'raw'" v-model="body" placeholder='{
   "key": "value"
@@ -307,6 +307,7 @@ import { Search, Folder, Globe, Database, Moon, Sun, Monitor, Plus, X, AlignLeft
 import CodeEditor from '../components/CodeEditor.vue'
 import JsonViewer from '../components/JsonViewer.vue'
 import KeyValueEditor from '../components/KeyValueEditor.vue'
+import FormDataEditor from '../components/FormDataEditor.vue'
 
 const methodColor = (method) => {
   const colors = { GET: 'text-blue-400', POST: 'text-emerald-400', PUT: 'text-amber-400', PATCH: 'text-amber-400', DELETE: 'text-red-400' }
@@ -336,7 +337,12 @@ const headers = ref('[]')
 const queryParams = ref('[]')
 const bodyType = ref('none')
 const body = ref('')
-const bodyForm = ref('[]')
+const bodyForm = ref([])
+const bodyFormFiles = ref([])
+
+const onFilesUpdate = (files) => {
+  bodyFormFiles.value = files
+}
 const bodyUrlencoded = ref('[]')
 const preRequestScript = ref('')
 const testScript = ref('')
@@ -356,7 +362,7 @@ const safeJsonParse = (str) => {
 
 const queryParamsError = computed(() => { try { if (queryParams.value.trim()) safeJsonParse(queryParams.value); return false } catch { return true } })
 const headersError = computed(() => { try { if (headers.value.trim()) safeJsonParse(headers.value); return false } catch { return true } })
-const bodyFormError = computed(() => { try { if (bodyForm.value.trim()) safeJsonParse(bodyForm.value); return false } catch { return true } })
+const bodyFormError = computed(() => false)
 const bodyUrlencodedError = computed(() => { try { if (bodyUrlencoded.value.trim()) safeJsonParse(bodyUrlencoded.value); return false } catch { return true } })
 
 const formatActiveTabJson = () => {
@@ -521,7 +527,7 @@ watch(() => workspaceStore.activeRequestId, (newId, oldId) => {
       queryParams: queryParams.value,
       body: body.value,
       bodyType: bodyType.value,
-      bodyForm: bodyForm.value,
+      bodyForm: JSON.stringify(bodyForm.value.map(i => ({...i, file: undefined}))),
       bodyUrlencoded: bodyUrlencoded.value,
       authType: authType.value,
       authBearerToken: authBearerToken.value,
@@ -540,7 +546,8 @@ watch(() => workspaceStore.activeRequestId, (newId, oldId) => {
     
     bodyType.value = newReq.bodyType || 'none'
     body.value = newReq.body || ''
-    bodyForm.value = newReq.bodyForm || '[]'
+    bodyForm.value = safeJsonParse(newReq.bodyForm || '[]')
+    bodyFormFiles.value = bodyForm.value
     bodyUrlencoded.value = newReq.bodyUrlencoded || '[]'
     
     authType.value = newReq.authType || 'none'
@@ -671,7 +678,7 @@ watch([method, url, headers, queryParams, body, bodyType, bodyForm, bodyUrlencod
       queryParams: queryParams.value,
       body: body.value,
       bodyType: bodyType.value,
-      bodyForm: bodyForm.value,
+      bodyForm: JSON.stringify(bodyForm.value.map(i => ({...i, file: undefined}))),
       bodyUrlencoded: bodyUrlencoded.value,
       authType: authType.value,
       authBearerToken: authBearerToken.value,
@@ -836,14 +843,20 @@ const sendRequest = async () => {
   const headersRaw = interpolate(headers.value)
   const queryParamsRaw = interpolate(queryParams.value)
   const bodyRaw = interpolate(body.value)
-  const bodyFormRaw = interpolate(bodyForm.value)
+  const bodyFormRaw = bodyForm.value // It's an array now
   const bodyUrlencodedRaw = interpolate(bodyUrlencoded.value)
   
   let parsedHeaders, parsedQuery, parsedBody, parsedBodyForm, parsedBodyUrlencoded
   try {
     if (headersRaw.trim()) parsedHeaders = safeJsonParse(headersRaw)
     if (queryParamsRaw.trim()) parsedQuery = safeJsonParse(queryParamsRaw)
-    if (bodyFormRaw.trim() && bodyType.value === 'formdata') parsedBodyForm = safeJsonParse(bodyFormRaw)
+    if (bodyType.value === 'formdata') {
+      parsedBodyForm = bodyFormRaw.map(item => ({
+        ...item,
+        key: interpolate(item.key),
+        value: interpolate(item.value)
+      }))
+    }
     if (bodyUrlencodedRaw.trim() && bodyType.value === 'urlencoded') parsedBodyUrlencoded = safeJsonParse(bodyUrlencodedRaw)
   } catch (e) {
     error.value = "Invalid JSON in Headers, Query Params, or Form Data. Please check your syntax."
@@ -903,7 +916,7 @@ const sendRequest = async () => {
   }
 
   try {
-    response.value = await fetchApi('/proxy', {
+    let fetchOptions = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       signal: currentRequestController.signal,
@@ -916,7 +929,39 @@ const sendRequest = async () => {
         bodyForm: parsedBodyForm,
         bodyUrlencoded: parsedBodyUrlencoded,
       })
-    })
+    }
+
+    if (bodyType.value === 'formdata') {
+      const formData = new FormData()
+      formData.append('method', method.value)
+      formData.append('url', finalUrl)
+      formData.append('headers', JSON.stringify(finalHeaders))
+      formData.append('bodyType', bodyType.value)
+      if (parsedBody) formData.append('body', JSON.stringify(parsedBody))
+      if (parsedBodyUrlencoded) formData.append('bodyUrlencoded', JSON.stringify(parsedBodyUrlencoded))
+      
+      const formFields = []
+      parsedBodyForm.forEach((item, index) => {
+        if (item.enabled !== false && item.key) {
+          formFields.push({ key: item.key, type: item.type })
+          if (item.type === 'file' && item.file) {
+            formData.append(`file_${index}`, item.file)
+          } else {
+            formData.append(`text_${index}`, item.value)
+          }
+        }
+      })
+      formData.append('bodyFormFields', JSON.stringify(formFields))
+      
+      fetchOptions = {
+        method: 'POST',
+        signal: currentRequestController.signal,
+        body: formData
+        // Omit Content-Type so browser sets it with boundary
+      }
+    }
+
+    response.value = await fetchApi('/proxy', fetchOptions)
     
     // Auto-extract token on login
     if (finalUrl.toLowerCase().includes('login') && response.value && response.value.data) {
@@ -975,7 +1020,7 @@ const handleSaveRequest = async () => {
       queryParams: queryParams.value,
       body: body.value,
       bodyType: bodyType.value,
-      bodyForm: bodyForm.value,
+      bodyForm: JSON.stringify(bodyForm.value.map(i => ({...i, file: undefined}))),
       bodyUrlencoded: bodyUrlencoded.value,
       preRequestScript: preRequestScript.value,
       testScript: testScript.value
@@ -989,7 +1034,7 @@ const handleSaveRequest = async () => {
       queryParams: queryParams.value,
       body: body.value,
       bodyType: bodyType.value,
-      bodyForm: bodyForm.value,
+      bodyForm: JSON.stringify(bodyForm.value.map(i => ({...i, file: undefined}))),
       bodyUrlencoded: bodyUrlencoded.value,
       preRequestScript: preRequestScript.value,
       testScript: testScript.value
@@ -1014,7 +1059,7 @@ const handleSaveAction = async () => {
       queryParams: queryParams.value,
       body: body.value,
       bodyType: bodyType.value,
-      bodyForm: bodyForm.value,
+      bodyForm: JSON.stringify(bodyForm.value.map(i => ({...i, file: undefined}))),
       bodyUrlencoded: bodyUrlencoded.value,
       preRequestScript: preRequestScript.value,
       testScript: testScript.value
