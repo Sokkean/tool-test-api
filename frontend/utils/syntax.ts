@@ -15,7 +15,7 @@ export function syntaxHighlight(json) {
   // Syntax highlighting regex including comments
   const regex = /(\/\*[\s\S]*?\*\/|\/\/.*)|("(?:[^"\\]|\\.)*")\s*:|("(?:[^"\\]|\\.)*")|(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)|(true|false)|(null)/g;
   
-  return str.replace(regex, function (match, comment, key, strVal, num, bool, nul) {
+  let result = str.replace(regex, function (match, comment, key, strVal, num, bool, nul) {
     if (comment) {
       return `<span class="text-slate-500">${comment}</span>`;
     } else if (key) {
@@ -34,4 +34,9 @@ export function syntaxHighlight(json) {
     }
     return match;
   });
+
+  // Highlight environment variables like {{var}}
+  result = result.replace(/\{\{([^}]+)\}\}/g, '<span class="text-amber-400 pointer-events-auto cursor-pointer hover:underline env-var-highlight" data-var="$1">{{$1}}</span>');
+
+  return result;
 }

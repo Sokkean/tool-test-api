@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col h-full bg-slate-950 text-sm text-slate-300 transition-colors duration-200" :class="error ? 'bg-red-500/5 ring-1 ring-inset ring-red-500/40' : ''">
+  <div class="flex flex-col h-full bg-transparent text-sm text-slate-300 transition-colors duration-200" :class="error ? 'bg-red-500/5 ring-1 ring-inset ring-red-500/40' : ''">
     <!-- Header -->
     <div class="flex items-center justify-between px-4 py-2 border-b border-slate-800 bg-slate-900/50">
       <span class="text-xs font-medium text-slate-500">{{ title }}</span>
@@ -26,10 +26,16 @@
               <input v-if="index < rows.length - 1 || row.key || row.value" type="checkbox" v-model="row.enabled" @change="update" class="w-3.5 h-3.5 rounded border-slate-700 bg-slate-900 text-blue-500 cursor-pointer accent-blue-500" />
             </td>
             <td class="p-0 border-r border-slate-800/30">
-              <input v-model="row.key" @input="onInput(index)" placeholder="Key" class="w-full h-8 px-3 bg-transparent outline-none focus:bg-slate-800/40 text-emerald-400 placeholder-slate-700 font-mono text-[13px]" :class="{ 'opacity-50 line-through': !row.enabled && (index < rows.length - 1 || row.key) }" />
+              <div class="relative w-full h-8 group/key">
+                <input v-model="row.key" @input="onInput(index)" @scroll="syncScroll" placeholder="Key" class="absolute inset-0 w-full h-full px-3 py-0 leading-[32px] bg-transparent outline-none focus:bg-slate-800/40 text-transparent caret-white placeholder:text-slate-700 font-mono text-[13px] z-10 m-0 border-0" :class="{ 'opacity-50 line-through': !row.enabled && (index < rows.length - 1 || row.key) }" spellcheck="false" />
+                <div class="absolute inset-0 w-full h-full px-3 py-0 leading-[32px] pointer-events-none whitespace-pre font-mono text-[13px] text-emerald-400 z-20 overflow-hidden m-0 border-0" :class="{ 'opacity-50 line-through': !row.enabled && (index < rows.length - 1 || row.key) }" aria-hidden="true" v-html="highlightText(row.key)" @mouseover="$emit('varHover', $event)" @mouseout="$emit('varLeave', $event)" @click="focusInput"></div>
+              </div>
             </td>
             <td class="p-0 border-r border-slate-800/30">
-              <input v-model="row.value" @input="onInput(index)" placeholder="Value" class="w-full h-8 px-3 bg-transparent outline-none focus:bg-slate-800/40 text-amber-400 placeholder-slate-700 font-mono text-[13px]" :class="{ 'opacity-50 line-through': !row.enabled && (index < rows.length - 1 || row.value) }" />
+              <div class="relative w-full h-8 group/val">
+                <input v-model="row.value" @input="onInput(index)" @scroll="syncScroll" placeholder="Value" class="absolute inset-0 w-full h-full px-3 py-0 leading-[32px] bg-transparent outline-none focus:bg-slate-800/40 text-transparent caret-white placeholder:text-slate-700 font-mono text-[13px] z-10 m-0 border-0" :class="{ 'opacity-50 line-through': !row.enabled && (index < rows.length - 1 || row.value) }" spellcheck="false" />
+                <div class="absolute inset-0 w-full h-full px-3 py-0 leading-[32px] pointer-events-none whitespace-pre font-mono text-[13px] text-amber-400 z-20 overflow-hidden m-0 border-0" :class="{ 'opacity-50 line-through': !row.enabled && (index < rows.length - 1 || row.value) }" aria-hidden="true" v-html="highlightText(row.value)" @mouseover="$emit('varHover', $event)" @mouseout="$emit('varLeave', $event)" @click="focusInput"></div>
+              </div>
             </td>
             <td class="p-0 border-r border-slate-800/30">
               <input v-model="row.description" @input="update" placeholder="Description" class="w-full h-8 px-3 bg-transparent outline-none focus:bg-slate-800/40 text-slate-400 placeholder-slate-700 text-[13px]" :class="{ 'opacity-50': !row.enabled && index < rows.length - 1 }" />
@@ -63,7 +69,7 @@ const props = defineProps({
   error: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue', 'varHover', 'varLeave'])
 
 const isBulkEdit = ref(false)
 const rows = ref([])
@@ -135,5 +141,25 @@ const removeRow = (index) => {
 
 const onBulkEdit = (val) => {
   emit('update:modelValue', val)
+}
+
+const highlightText = (val) => {
+  if (!val) return ''
+  const escaped = val.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+  return escaped.replace(/\{\{([^}]+)\}\}/g, '<span class="text-amber-400 pointer-events-auto cursor-pointer hover:underline env-var-highlight" data-var="$1">{{$1}}</span>')
+}
+
+const syncScroll = (e) => {
+  const overlay = e.target.nextElementSibling
+  if (overlay) {
+    overlay.scrollLeft = e.target.scrollLeft
+  }
+}
+
+const focusInput = (e) => {
+  if (e.target && e.target.classList && e.target.classList.contains('env-var-highlight')) {
+    const input = e.target.closest('td').querySelector('input')
+    if (input) input.focus()
+  }
 }
 </script>

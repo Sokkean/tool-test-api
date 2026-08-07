@@ -1,23 +1,23 @@
 <template>
   <div class="relative w-full h-full font-mono text-sm overflow-hidden transition-colors duration-200 group" :class="error ? 'bg-red-500/5 ring-1 ring-inset ring-red-500/40' : 'bg-transparent'">
-    <!-- Highlighted Output -->
-    <pre 
-      class="absolute inset-0 pointer-events-none p-4 m-0 border-0 border-transparent whitespace-pre-wrap break-all overflow-hidden text-slate-300 custom-scrollbar"
-      aria-hidden="true"
-      v-html="highlightedHtml"
-    ></pre>
-    
     <!-- Transparent Textarea -->
     <textarea 
       ref="textareaRef"
-      :value="modelValue"
-      @input="$emit('update:modelValue', $event.target.value)"
+      v-model="internalValue"
       @keydown="handleKeydown"
       @scroll="syncScroll"
       class="absolute inset-0 w-full h-full p-4 m-0 border-0 border-transparent resize-none outline-none whitespace-pre-wrap break-all bg-transparent text-transparent caret-white custom-scrollbar focus:ring-0 focus:outline-none"
       spellcheck="false"
       :placeholder="placeholder"
     ></textarea>
+
+    <!-- Highlighted Output -->
+    <pre 
+      class="absolute inset-0 pointer-events-none p-4 m-0 border-0 border-transparent whitespace-pre-wrap break-all overflow-hidden text-slate-300 custom-scrollbar"
+      aria-hidden="true"
+      v-html="highlightedHtml"
+      @click="handleVarClick"
+    ></pre>
   </div>
 </template>
 
@@ -42,6 +42,11 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue'])
 const textareaRef = ref(null)
+
+const internalValue = computed({
+  get: () => props.modelValue,
+  set: (val) => emit('update:modelValue', val)
+})
 
 const handleKeydown = (e) => {
   if (e.key === 'Tab') {
@@ -121,10 +126,16 @@ const highlightedHtml = computed(() => {
 const syncScroll = (e) => {
   // Since the pre is pointer-events-none, scrolling happens on textarea.
   // We need the pre to visually scroll with it.
-  const pre = e.target.previousElementSibling
+  const pre = e.target.nextElementSibling
   if (pre) {
     pre.scrollTop = e.target.scrollTop
     pre.scrollLeft = e.target.scrollLeft
+  }
+}
+
+const handleVarClick = (e) => {
+  if (e.target.classList.contains('env-var-highlight')) {
+    if (textareaRef.value) textareaRef.value.focus()
   }
 }
 </script>

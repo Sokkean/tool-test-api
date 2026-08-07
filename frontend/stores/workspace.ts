@@ -256,16 +256,24 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const authStore = useAuthStore()
     const config = useRuntimeConfig()
     const payload = { ...requestData }
-    if (payload.bodyType) {
+    if (payload.bodyType !== undefined || payload.authType !== undefined) {
       payload.body = JSON.stringify({
         _bodyType: payload.bodyType,
         raw: payload.body,
         formdata: payload.bodyForm,
-        urlencoded: payload.bodyUrlencoded
+        urlencoded: payload.bodyUrlencoded,
+        authType: payload.authType,
+        authBearerToken: payload.authBearerToken,
+        authBasicUsername: payload.authBasicUsername,
+        authBasicPassword: payload.authBasicPassword
       })
       delete payload.bodyType
       delete payload.bodyForm
       delete payload.bodyUrlencoded
+      delete payload.authType
+      delete payload.authBearerToken
+      delete payload.authBasicUsername
+      delete payload.authBasicPassword
     }
 
     const res = await fetch(`${config.public.apiBaseUrl}/workspaces/collections/${collectionId}/requests`, {
@@ -279,19 +287,26 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (rawReq.body) {
       try {
         const p = JSON.parse(rawReq.body)
-        if (p && p._bodyType) {
-          rawReq.bodyType = p._bodyType
+        if (p && (p._bodyType || p.authType)) {
+          rawReq.bodyType = p._bodyType || 'none'
           rawReq.body = p.raw || ''
           rawReq.bodyForm = p.formdata || '[]'
           rawReq.bodyUrlencoded = p.urlencoded || '[]'
+          rawReq.authType = p.authType || 'none'
+          rawReq.authBearerToken = p.authBearerToken || ''
+          rawReq.authBasicUsername = p.authBasicUsername || ''
+          rawReq.authBasicPassword = p.authBasicPassword || ''
         } else {
           rawReq.bodyType = 'raw'
+          rawReq.authType = 'none'
         }
       } catch(e) {
         rawReq.bodyType = 'raw'
+        rawReq.authType = 'none'
       }
     } else {
       rawReq.bodyType = 'none'
+      rawReq.authType = 'none'
     }
     const savedReq = rawReq
     
@@ -315,16 +330,24 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const config = useRuntimeConfig()
     
     const payload = { ...data }
-    if (payload.bodyType) {
+    if (payload.bodyType !== undefined || payload.authType !== undefined) {
       payload.body = JSON.stringify({
         _bodyType: payload.bodyType,
         raw: payload.body,
         formdata: payload.bodyForm,
-        urlencoded: payload.bodyUrlencoded
+        urlencoded: payload.bodyUrlencoded,
+        authType: payload.authType,
+        authBearerToken: payload.authBearerToken,
+        authBasicUsername: payload.authBasicUsername,
+        authBasicPassword: payload.authBasicPassword
       })
       delete payload.bodyType
       delete payload.bodyForm
       delete payload.bodyUrlencoded
+      delete payload.authType
+      delete payload.authBearerToken
+      delete payload.authBasicUsername
+      delete payload.authBasicPassword
     }
     
     await fetch(`${config.public.apiBaseUrl}/workspaces/requests/${id}`, {
@@ -396,19 +419,26 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         if (req.body) {
           try {
             const p = JSON.parse(req.body)
-            if (p && p._bodyType) {
-              req.bodyType = p._bodyType
+            if (p && (p._bodyType || p.authType)) {
+              req.bodyType = p._bodyType || 'none'
               req.body = p.raw || ''
               req.bodyForm = p.formdata || '[]'
               req.bodyUrlencoded = p.urlencoded || '[]'
+              req.authType = p.authType || 'none'
+              req.authBearerToken = p.authBearerToken || ''
+              req.authBasicUsername = p.authBasicUsername || ''
+              req.authBasicPassword = p.authBasicPassword || ''
             } else {
               req.bodyType = 'raw'
+              req.authType = 'none'
             }
           } catch(e) {
             req.bodyType = 'raw'
+            req.authType = 'none'
           }
         } else {
           req.bodyType = 'none'
+          req.authType = 'none'
         }
         return req
       })
@@ -454,7 +484,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     
     if (!originalReq) return false
     
-    const fields = ['name', 'method', 'url', 'headers', 'queryParams', 'body', 'bodyType', 'bodyForm', 'bodyUrlencoded', 'preRequestScript', 'testScript']
+    const fields = ['name', 'method', 'url', 'headers', 'queryParams', 'body', 'bodyType', 'bodyForm', 'bodyUrlencoded', 'preRequestScript', 'testScript', 'authType', 'authBearerToken', 'authBasicUsername', 'authBasicPassword']
     for (const field of fields) {
       let openVal = openReq[field] || ''
       let origVal = originalReq[field] || ''

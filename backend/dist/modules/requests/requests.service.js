@@ -17,9 +17,15 @@ let RequestsService = class RequestsService {
     constructor(prisma) {
         this.prisma = prisma;
     }
-    async executeRequest(requestData) {
+    async executeRequest(requestData, files) {
         const startTime = Date.now();
         try {
+            if (typeof requestData.headers === 'string') {
+                try {
+                    requestData.headers = JSON.parse(requestData.headers);
+                }
+                catch (e) { }
+            }
             const sanitizedHeaders = {};
             if (requestData.headers) {
                 for (const [key, value] of Object.entries(requestData.headers)) {
@@ -30,22 +36,71 @@ let RequestsService = class RequestsService {
                 }
             }
             let finalData = requestData.body;
-            if (requestData.bodyType === 'urlencoded' && requestData.bodyUrlencoded) {
-                const searchParams = new URLSearchParams();
-                requestData.bodyUrlencoded.forEach(item => {
-                    if (item.enabled !== false && item.key) {
-                        searchParams.append(item.key, item.value || '');
-                    }
-                });
-                finalData = searchParams;
+            if (typeof finalData === 'string' && requestData.bodyType !== 'raw') {
+                try {
+                    finalData = JSON.parse(finalData);
+                }
+                catch (e) { }
             }
-            else if (requestData.bodyType === 'formdata' && requestData.bodyForm) {
-                const formData = new FormData();
-                requestData.bodyForm.forEach(item => {
-                    if (item.enabled !== false && item.key) {
-                        formData.append(item.key, item.value || '');
+            if (requestData.bodyType === 'urlencoded' && requestData.bodyUrlencoded) {
+                let urlencodedData = requestData.bodyUrlencoded;
+                if (typeof urlencodedData === 'string') {
+                    try {
+                        urlencodedData = JSON.parse(urlencodedData);
                     }
-                });
+                    catch (e) { }
+                }
+                if (Array.isArray(urlencodedData)) {
+                    const searchParams = new URLSearchParams();
+                    urlencodedData.forEach(item => {
+                        if (item.enabled !== false && item.key) {
+                            searchParams.append(item.key, item.value || '');
+                        }
+                    });
+                    finalData = searchParams;
+                }
+            }
+            else if (requestData.bodyType === 'formdata') {
+                const formData = new FormData();
+                if (requestData.bodyFormFields) {
+                    let formFields = [];
+                    if (typeof requestData.bodyFormFields === 'string') {
+                        try {
+                            formFields = JSON.parse(requestData.bodyFormFields);
+                        }
+                        catch (e) { }
+                    }
+                    if (Array.isArray(formFields)) {
+                        formFields.forEach((field, index) => {
+                            if (field.type === 'file') {
+                                const file = files?.find(f => f.fieldname === `file_${index}`);
+                                if (file) {
+                                    const blob = new Blob([file.buffer], { type: file.mimetype });
+                                    formData.append(field.key, blob, file.originalname);
+                                }
+                            }
+                            else {
+                                formData.append(field.key, requestData[`text_${index}`] || '');
+                            }
+                        });
+                    }
+                }
+                else if (requestData.bodyForm) {
+                    let formFields = requestData.bodyForm;
+                    if (typeof formFields === 'string') {
+                        try {
+                            formFields = JSON.parse(formFields);
+                        }
+                        catch (e) { }
+                    }
+                    if (Array.isArray(formFields)) {
+                        formFields.forEach(item => {
+                            if (item.enabled !== false && item.key) {
+                                formData.append(item.key, item.value || '');
+                            }
+                        });
+                    }
+                }
                 finalData = formData;
             }
             const response = await (0, axios_1.default)({

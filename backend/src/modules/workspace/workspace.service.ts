@@ -265,10 +265,48 @@ export class WorkspaceService {
           headersStr = JSON.stringify(item.request.header.map((h: any) => ({ key: h.key, value: h.value })));
         }
 
-        let bodyStr = '';
-        if (item.request.body && item.request.body.mode === 'raw') {
-          bodyStr = item.request.body.raw;
+        let bodyPayload: any = {
+          _bodyType: 'none',
+          raw: '',
+          formdata: '[]',
+          urlencoded: '[]',
+          authType: 'none',
+          authBearerToken: '',
+          authBasicUsername: '',
+          authBasicPassword: ''
+        };
+
+        if (item.request.body) {
+          if (item.request.body.mode === 'raw') {
+            bodyPayload._bodyType = 'raw';
+            bodyPayload.raw = item.request.body.raw || '';
+          } else if (item.request.body.mode === 'formdata') {
+            bodyPayload._bodyType = 'formdata';
+            bodyPayload.formdata = JSON.stringify(
+              (item.request.body.formdata || []).map((fd: any) => ({ key: fd.key, value: fd.value }))
+            );
+          } else if (item.request.body.mode === 'urlencoded') {
+            bodyPayload._bodyType = 'urlencoded';
+            bodyPayload.urlencoded = JSON.stringify(
+              (item.request.body.urlencoded || []).map((ue: any) => ({ key: ue.key, value: ue.value }))
+            );
+          }
         }
+
+        if (item.request.auth) {
+          bodyPayload.authType = item.request.auth.type || 'none';
+          if (item.request.auth.type === 'bearer' && Array.isArray(item.request.auth.bearer)) {
+            const tokenItem = item.request.auth.bearer.find((b: any) => b.key === 'token');
+            if (tokenItem) bodyPayload.authBearerToken = tokenItem.value;
+          } else if (item.request.auth.type === 'basic' && Array.isArray(item.request.auth.basic)) {
+            const userItem = item.request.auth.basic.find((b: any) => b.key === 'username');
+            const passItem = item.request.auth.basic.find((b: any) => b.key === 'password');
+            if (userItem) bodyPayload.authBasicUsername = userItem.value;
+            if (passItem) bodyPayload.authBasicPassword = passItem.value;
+          }
+        }
+
+        const bodyStr = JSON.stringify(bodyPayload);
 
         let queryParamsStr = '[]';
         if (item.request.url && Array.isArray(item.request.url.query)) {

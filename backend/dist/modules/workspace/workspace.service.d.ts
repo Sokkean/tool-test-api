@@ -8,14 +8,28 @@ export declare class WorkspaceService {
         createdAt: Date;
         userId: number;
     }>;
-    getWorkspaces(userId: number): Promise<({
-        collections: {
+    getWorkspaces(userId: number, search?: string): Promise<({
+        collections: ({
+            requests: {
+                name: string;
+                id: number;
+                createdAt: Date;
+                url: string;
+                method: string;
+                headers: string | null;
+                queryParams: string | null;
+                body: string | null;
+                preRequestScript: string | null;
+                testScript: string | null;
+                collectionId: number;
+            }[];
+        } & {
             name: string;
             id: number;
             createdAt: Date;
             workspaceId: number;
             parentId: number | null;
-        }[];
+        })[];
         members: ({
             user: {
                 name: string;
@@ -46,8 +60,8 @@ export declare class WorkspaceService {
         name: string;
         id: number;
         createdAt: Date;
-        method: string;
         url: string;
+        method: string;
         headers: string | null;
         queryParams: string | null;
         body: string | null;
@@ -59,8 +73,8 @@ export declare class WorkspaceService {
         history: {
             id: number;
             createdAt: Date;
-            method: string;
             url: string;
+            method: string;
             status: number;
             timeMs: number;
             response: string | null;
@@ -70,8 +84,8 @@ export declare class WorkspaceService {
         name: string;
         id: number;
         createdAt: Date;
-        method: string;
         url: string;
+        method: string;
         headers: string | null;
         queryParams: string | null;
         body: string | null;
@@ -115,8 +129,8 @@ export declare class WorkspaceService {
         name: string;
         id: number;
         createdAt: Date;
-        method: string;
         url: string;
+        method: string;
         headers: string | null;
         queryParams: string | null;
         body: string | null;
@@ -128,8 +142,8 @@ export declare class WorkspaceService {
         name: string;
         id: number;
         createdAt: Date;
-        method: string;
         url: string;
+        method: string;
         headers: string | null;
         queryParams: string | null;
         body: string | null;
@@ -148,8 +162,8 @@ export declare class WorkspaceService {
         name: string;
         id: number;
         createdAt: Date;
-        method: string;
         url: string;
+        method: string;
         headers: string | null;
         queryParams: string | null;
         body: string | null;

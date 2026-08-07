@@ -21,16 +21,32 @@ let WorkspaceService = class WorkspaceService {
             data: { name, userId }
         });
     }
-    async getWorkspaces(userId) {
-        return this.prisma.workspace.findMany({
-            where: {
+    async getWorkspaces(userId, search) {
+        const baseCondition = {
+            OR: [
+                { userId },
+                { members: { some: { userId } } }
+            ]
+        };
+        const where = {
+            AND: [baseCondition]
+        };
+        if (search) {
+            where.AND.push({
                 OR: [
-                    { userId },
-                    { members: { some: { userId } } }
+                    { name: { contains: search, mode: 'insensitive' } },
+                    { collections: { some: { name: { contains: search, mode: 'insensitive' } } } },
+                    { collections: { some: { requests: { some: { name: { contains: search, mode: 'insensitive' } } } } } },
+                    { collections: { some: { requests: { some: { url: { contains: search, mode: 'insensitive' } } } } } }
                 ]
-            },
+            });
+        }
+        return this.prisma.workspace.findMany({
+            where,
             include: {
-                collections: true,
+                collections: {
+                    include: { requests: true }
+                },
                 members: {
                     include: {
                         user: { select: { id: true, email: true, name: true } }
@@ -241,10 +257,47 @@ let WorkspaceService = class WorkspaceService {
                 if (Array.isArray(item.request.header)) {
                     headersStr = JSON.stringify(item.request.header.map((h) => ({ key: h.key, value: h.value })));
                 }
-                let bodyStr = '';
-                if (item.request.body && item.request.body.mode === 'raw') {
-                    bodyStr = item.request.body.raw;
+                let bodyPayload = {
+                    _bodyType: 'none',
+                    raw: '',
+                    formdata: '[]',
+                    urlencoded: '[]',
+                    authType: 'none',
+                    authBearerToken: '',
+                    authBasicUsername: '',
+                    authBasicPassword: ''
+                };
+                if (item.request.body) {
+                    if (item.request.body.mode === 'raw') {
+                        bodyPayload._bodyType = 'raw';
+                        bodyPayload.raw = item.request.body.raw || '';
+                    }
+                    else if (item.request.body.mode === 'formdata') {
+                        bodyPayload._bodyType = 'formdata';
+                        bodyPayload.formdata = JSON.stringify((item.request.body.formdata || []).map((fd) => ({ key: fd.key, value: fd.value })));
+                    }
+                    else if (item.request.body.mode === 'urlencoded') {
+                        bodyPayload._bodyType = 'urlencoded';
+                        bodyPayload.urlencoded = JSON.stringify((item.request.body.urlencoded || []).map((ue) => ({ key: ue.key, value: ue.value })));
+                    }
                 }
+                if (item.request.auth) {
+                    bodyPayload.authType = item.request.auth.type || 'none';
+                    if (item.request.auth.type === 'bearer' && Array.isArray(item.request.auth.bearer)) {
+                        const tokenItem = item.request.auth.bearer.find((b) => b.key === 'token');
+                        if (tokenItem)
+                            bodyPayload.authBearerToken = tokenItem.value;
+                    }
+                    else if (item.request.auth.type === 'basic' && Array.isArray(item.request.auth.basic)) {
+                        const userItem = item.request.auth.basic.find((b) => b.key === 'username');
+                        const passItem = item.request.auth.basic.find((b) => b.key === 'password');
+                        if (userItem)
+                            bodyPayload.authBasicUsername = userItem.value;
+                        if (passItem)
+                            bodyPayload.authBasicPassword = passItem.value;
+                    }
+                }
+                const bodyStr = JSON.stringify(bodyPayload);
                 let queryParamsStr = '[]';
                 if (item.request.url && Array.isArray(item.request.url.query)) {
                     queryParamsStr = JSON.stringify(item.request.url.query.map((q) => ({ key: q.key, value: q.value })));

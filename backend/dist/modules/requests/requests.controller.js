@@ -14,14 +14,16 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RequestsController = void 0;
 const common_1 = require("@nestjs/common");
+const platform_express_1 = require("@nestjs/platform-express");
 const requests_service_1 = require("./requests.service");
+require("multer");
 let RequestsController = class RequestsController {
     constructor(requestsService) {
         this.requestsService = requestsService;
     }
-    async proxyRequest(requestData) {
+    async proxyRequest(requestData, files) {
         try {
-            const result = await this.requestsService.executeRequest(requestData);
+            const result = await this.requestsService.executeRequest(requestData, files);
             return result;
         }
         catch (error) {
@@ -32,9 +34,11 @@ let RequestsController = class RequestsController {
 exports.RequestsController = RequestsController;
 __decorate([
     (0, common_1.Post)(),
+    (0, common_1.UseInterceptors)((0, platform_express_1.AnyFilesInterceptor)()),
     __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.UploadedFiles)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, Array]),
     __metadata("design:returntype", Promise)
 ], RequestsController.prototype, "proxyRequest", null);
 exports.RequestsController = RequestsController = __decorate([

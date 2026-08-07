@@ -23,8 +23,8 @@ let WorkspaceController = class WorkspaceController {
     createWorkspace(req, name) {
         return this.workspaceService.createWorkspace(req.user.id, name);
     }
-    getWorkspaces(req) {
-        return this.workspaceService.getWorkspaces(req.user.id);
+    getWorkspaces(req, search) {
+        return this.workspaceService.getWorkspaces(req.user.id, search);
     }
     importGlobalCollection(req, data) {
         return this.workspaceService.importGlobalCollection(req.user.id, data);
@@ -94,8 +94,9 @@ __decorate([
 __decorate([
     (0, common_1.Get)(),
     __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Query)('search')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", void 0)
 ], WorkspaceController.prototype, "getWorkspaces", null);
 __decorate([

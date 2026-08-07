@@ -35,15 +35,27 @@ services:
       db:
         condition: service_healthy
     restart: unless-stopped
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    command: sh -c "npx prisma generate && npx prisma db push && npm run start:dev"
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: tool_testing_frontend
+    environment:
+      - HOST=0.0.0.0
+      - NUXT_HOST=0.0.0.0
     ports:
       - "3003:3003"
     restart: unless-stopped
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.nuxt
+    command: npm run dev
 
 volumes:
   db_data:

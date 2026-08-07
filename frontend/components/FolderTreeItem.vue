@@ -64,7 +64,7 @@
       <!-- Requests -->
       <div v-for="req in collection.requests" :key="req.id"
            class="py-1.5 pr-2 rounded-md text-xs flex items-center justify-between group relative transition-colors"
-           :class="workspaceStore.activeRequest?.id === req.id ? 'bg-slate-800 text-white' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'"
+           :class="workspaceStore.activeRequest?.id === req.id ? 'bg-slate-800 text-slate-200' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'"
            :style="{ paddingLeft: `${(depth + 1) * 12 + 8}px` }">
         <div @click="workspaceStore.selectRequest(req)" class="flex items-center gap-2 truncate cursor-pointer flex-1 min-w-0">
           <span class="font-bold text-[9px] shrink-0" :class="methodColor(req.method)">{{ req.method }}</span>

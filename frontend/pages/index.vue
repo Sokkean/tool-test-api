@@ -1,18 +1,18 @@
 <template>
-  <div class="flex-1 flex flex-col min-w-0 bg-slate-950 h-full relative">
+  <div class="flex-1 flex flex-col min-w-0 bg-transparent h-full relative">
     
     <!-- Environment Manager Modal -->
     <div v-if="showEnvModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div class="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-4xl h-[80vh] shadow-2xl flex overflow-hidden">
         
         <!-- Sidebar -->
-        <div class="w-64 bg-slate-950 border-r border-slate-800 flex flex-col">
+        <div class="w-64 bg-slate-900/50 backdrop-blur-md border-r border-slate-800 flex flex-col">
           <input type="file" ref="envFileInput" @change="importEnvironment" accept=".json" class="hidden" />
           <div class="p-4 border-b border-slate-800 flex justify-between items-center shrink-0">
             <h3 class="font-semibold text-slate-200 flex items-center gap-2"><Globe class="w-4 h-4 text-blue-400" /> Environments</h3>
             <div class="flex gap-2">
-              <button @click="triggerEnvImport" class="text-slate-400 hover:text-white" title="Import Environment"><Upload class="w-4 h-4"/></button>
-              <button @click="createEnvironment" class="text-slate-400 hover:text-white" title="New Environment"><Plus class="w-4 h-4"/></button>
+              <button @click="triggerEnvImport" class="text-slate-400 hover:text-slate-200" title="Import Environment"><Upload class="w-4 h-4"/></button>
+              <button @click="createEnvironment" class="text-slate-400 hover:text-slate-200" title="New Environment"><Plus class="w-4 h-4"/></button>
             </div>
           </div>
           <div class="flex-1 overflow-auto p-2 space-y-1 custom-scrollbar">
@@ -25,13 +25,13 @@
         </div>
 
         <!-- Main Area -->
-        <div class="flex-1 flex flex-col bg-[#0d1117]">
+        <div class="flex-1 flex flex-col bg-slate-950/60 backdrop-blur-sm">
           <div class="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-900/50 shrink-0 group">
             <div class="flex items-center gap-2 flex-1">
               <input v-model="editingEnvironment.name" :disabled="editingEnvironment.id === 'global'" class="bg-transparent text-lg font-semibold text-slate-200 outline-none border-b border-transparent focus:border-blue-500 px-1 disabled:opacity-80 disabled:cursor-not-allowed hover:bg-slate-800/50 focus:bg-slate-950 rounded transition-colors w-1/2" />
               <Pencil v-if="editingEnvironment.id !== 'global'" class="w-4 h-4 text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
             </div>
-            <button @click="showEnvModal = false" class="text-slate-400 hover:text-white transition-colors">
+            <button @click="showEnvModal = false" class="text-slate-400 hover:text-slate-200 transition-colors">
               <X class="w-5 h-5" />
             </button>
           </div>
@@ -67,14 +67,14 @@
       <div class="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-md overflow-hidden shadow-2xl flex flex-col">
         <div class="flex justify-between items-center p-4 border-b border-slate-800">
           <h3 class="font-semibold text-lg flex items-center gap-2"><Bookmark class="w-5 h-5 text-indigo-400" /> Save Request</h3>
-          <button @click="showSaveModal = false" class="text-slate-400 hover:text-white p-1 rounded-md hover:bg-slate-800 transition-colors"><X class="w-5 h-5"/></button>
+          <button @click="showSaveModal = false" class="text-slate-400 hover:text-slate-200 p-1 rounded-md hover:bg-slate-800 transition-colors"><X class="w-5 h-5"/></button>
         </div>
         <div class="p-6">
-          <p class="text-sm text-slate-400 mb-2">Saving to collection: <strong class="text-white">{{ workspaceStore.activeCollection?.name }}</strong></p>
+          <p class="text-sm text-slate-400 mb-2">Saving to collection: <strong class="text-slate-200">{{ workspaceStore.activeCollection?.name }}</strong></p>
           <input v-model="saveRequestName" placeholder="Request Name (e.g. Get User Profile)" class="w-full bg-slate-950/50 border border-slate-700 text-slate-200 px-3 py-2 rounded-lg text-sm focus:outline-none focus:border-indigo-500 transition-colors" @keyup.enter="handleSaveRequest" />
         </div>
         <div class="p-4 border-t border-slate-800 flex justify-end gap-3 bg-slate-900/50">
-          <button @click="showSaveModal = false" class="text-slate-400 hover:text-white px-4 py-2 text-sm font-medium transition-colors">Cancel</button>
+          <button @click="showSaveModal = false" class="text-slate-400 hover:text-slate-200 px-4 py-2 text-sm font-medium transition-colors">Cancel</button>
           <button @click="handleSaveRequest" :disabled="!saveRequestName" class="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors shadow-lg shadow-indigo-500/20">Save</button>
         </div>
       </div>
@@ -85,50 +85,64 @@
       <div class="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-md overflow-hidden shadow-2xl flex flex-col">
         <div class="flex justify-between items-center p-4 border-b border-slate-800">
           <h3 class="font-semibold text-lg flex items-center gap-2"><AlertTriangle class="w-5 h-5 text-amber-500" /> Unsaved Changes</h3>
-          <button @click="showCloseConfirmModal = false" class="text-slate-400 hover:text-white p-1 rounded-md hover:bg-slate-800 transition-colors"><X class="w-5 h-5"/></button>
+          <button @click="showCloseConfirmModal = false" class="text-slate-400 hover:text-slate-200 p-1 rounded-md hover:bg-slate-800 transition-colors"><X class="w-5 h-5"/></button>
         </div>
         <div class="p-6">
-          <p class="text-sm text-slate-300">You have unsaved changes in <strong class="text-white">{{ tabToClose?.name || 'this request' }}</strong>. Are you sure you want to close it without saving?</p>
+          <p class="text-sm text-slate-300">You have unsaved changes in <strong class="text-slate-200">{{ tabToClose?.name || 'this request' }}</strong>. Are you sure you want to close it without saving?</p>
         </div>
         <div class="p-4 border-t border-slate-800 flex justify-end gap-3 bg-slate-900/50">
-          <button @click="showCloseConfirmModal = false" class="text-slate-400 hover:text-white px-4 py-2 text-sm font-medium transition-colors">Cancel</button>
+          <button @click="showCloseConfirmModal = false" class="text-slate-400 hover:text-slate-200 px-4 py-2 text-sm font-medium transition-colors">Cancel</button>
           <button @click="confirmCloseTab" class="bg-red-600 hover:bg-red-500 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors shadow-lg shadow-red-500/20">Close Without Saving</button>
         </div>
       </div>
     </div>
 
+    <!-- Variable Edit Popover -->
+    <div :style="varPopoverStyle" class="fixed z-50 pt-2" @mouseover="clearVarPopoverTimeout" @mouseleave="handleVarLeave">
+      <div class="bg-slate-800 border border-slate-700 rounded-lg p-3 shadow-2xl w-64">
+        <div class="text-xs text-slate-400 mb-1 font-medium flex justify-between">
+          <span>Variable: <strong class="text-amber-400">{{ hoveredVar }}</strong></span>
+        </div>
+        <input v-model="hoveredVarValue" @input="updateHoveredVar" class="w-full bg-slate-950 border border-slate-700 text-slate-200 px-2 py-1.5 rounded text-sm focus:outline-none focus:border-blue-500 transition-colors" placeholder="Set value..." />
+        <div class="text-[10px] text-slate-500 mt-1">Updates <strong class="text-slate-400">{{ activeEnvironment?.name }}</strong> environment.</div>
+      </div>
+    </div>
+
     <!-- Tabs Bar -->
-    <div class="flex items-center overflow-x-auto bg-slate-950/80 border-b border-slate-800 custom-scrollbar shrink-0 pt-2 px-2 gap-1 h-10">
-      <div v-for="tab in workspaceStore.openRequests" :key="tab.id"
-           @click="workspaceStore.selectRequest(tab)"
-           class="group flex items-center gap-2 px-3 py-1.5 min-w-[120px] max-w-[200px] border border-b-0 rounded-t-lg cursor-pointer transition-colors"
-           :class="workspaceStore.activeRequestId === tab.id ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-950 border-transparent text-slate-400 hover:bg-slate-900/50 hover:text-slate-300'">
-        <span class="text-[10px] font-bold shrink-0" :class="methodColor(tab.method)">{{ tab.method }}</span>
-        <span class="truncate text-xs flex-1">{{ tab.name }}</span>
-        
-        <div v-if="workspaceStore.isRequestModified(tab.id)" class="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0 group-hover:hidden" title="Unsaved changes"></div>
-        <button @click.stop="handleCloseTab(tab)" :class="workspaceStore.isRequestModified(tab.id) ? 'hidden group-hover:block' : 'opacity-0 group-hover:opacity-100'" class="p-0.5 hover:bg-slate-700 rounded transition-opacity shrink-0">
-          <X class="w-3 h-3"/>
+    <div class="flex items-center justify-between bg-slate-950/80 border-b border-slate-800 shrink-0 pt-2 px-2 h-10">
+      <div class="flex items-center overflow-x-auto custom-scrollbar gap-1 h-full flex-1 min-w-0">
+        <div v-for="tab in workspaceStore.openRequests" :key="tab.id"
+             @click="workspaceStore.selectRequest(tab)"
+             class="group flex items-center gap-2 px-3 py-1.5 min-w-[120px] max-w-[200px] border border-b-0 rounded-t-lg cursor-pointer transition-colors h-full"
+             :class="workspaceStore.activeRequestId === tab.id ? 'bg-slate-900/80 border-slate-700 text-slate-200' : 'bg-slate-950/50 border-transparent text-slate-400 hover:bg-slate-900/50 hover:text-slate-300'">
+          <span class="text-[10px] font-bold shrink-0" :class="methodColor(tab.method)">{{ tab.method }}</span>
+          <span class="truncate text-xs flex-1">{{ tab.name }}</span>
+          
+          <div v-if="workspaceStore.isRequestModified(tab.id)" class="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0 group-hover:hidden" title="Unsaved changes"></div>
+          <button @click.stop="handleCloseTab(tab)" :class="workspaceStore.isRequestModified(tab.id) ? 'hidden group-hover:block' : 'opacity-0 group-hover:opacity-100'" class="p-0.5 hover:bg-slate-700 rounded transition-opacity shrink-0">
+            <X class="w-3 h-3"/>
+          </button>
+        </div>
+        <button @click="workspaceStore.openNewTab()" class="ml-1 p-1 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded transition-colors shrink-0 flex items-center justify-center mb-1" title="New Request">
+          <Plus class="w-4 h-4" />
         </button>
       </div>
-      <button @click="workspaceStore.openNewTab()" class="ml-1 p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-colors shrink-0 flex items-center justify-center" title="New Request">
-        <Plus class="w-4 h-4" />
-      </button>
+
+      <!-- Global Environment Selector -->
+      <div class="flex items-center bg-slate-800/60 rounded-md p-0.5 border border-slate-700/50 shadow-sm shrink-0 ml-4 mb-1">
+        <select v-model="activeEnvironmentId" class="bg-transparent text-slate-300 font-medium px-2 py-0.5 outline-none cursor-pointer text-xs hover:text-slate-200 appearance-none max-w-[150px] truncate">
+          <option v-for="env in environments" :key="env.id" :value="env.id" class="bg-slate-900 text-slate-200">{{ env.name }}</option>
+        </select>
+        <div class="w-px h-3 bg-slate-700 mx-1"></div>
+        <button @click="showEnvModal = true; editingEnvironmentId = activeEnvironmentId" class="p-1 text-slate-400 hover:text-blue-400 hover:bg-slate-700 rounded transition-colors group" title="Manage Environments">
+          <Settings class="w-3.5 h-3.5 group-hover:rotate-90 transition-transform" />
+        </button>
+      </div>
     </div>
 
     <template v-if="workspaceStore.activeRequest">
       <!-- Top Action Bar -->
       <div class="h-16 border-b border-slate-800/80 bg-slate-900/50 backdrop-blur-sm flex items-center px-6 gap-4 shrink-0">
-      
-      <div class="flex items-center bg-slate-800 rounded-lg p-1 border border-slate-700 shadow-sm shrink-0">
-        <select v-model="activeEnvironmentId" class="bg-transparent text-slate-300 font-medium px-3 py-1.5 outline-none cursor-pointer text-sm hover:text-white appearance-none max-w-[150px] truncate">
-          <option v-for="env in environments" :key="env.id" :value="env.id" class="bg-slate-900 text-slate-200">{{ env.name }}</option>
-        </select>
-        <div class="w-px h-5 bg-slate-700 mx-1"></div>
-        <button @click="showEnvModal = true; editingEnvironmentId = activeEnvironmentId" class="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-slate-700 rounded transition-colors group" title="Manage Environments">
-          <Settings class="w-4 h-4 group-hover:rotate-90 transition-transform" />
-        </button>
-      </div>
       
       <div class="flex-1 flex items-center bg-slate-950/80 border border-slate-700 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 rounded-lg overflow-hidden transition-all shadow-inner h-10">
         <select v-model="method" class="bg-transparent text-blue-400 font-bold px-4 h-full outline-none cursor-pointer text-sm border-r border-slate-700/50 hover:bg-slate-800/50 appearance-none">
@@ -138,15 +152,15 @@
           <option class="bg-slate-900 text-slate-200" value="PATCH">PATCH</option>
           <option class="bg-slate-900 text-slate-200" value="DELETE">DELETE</option>
         </select>
-        <div class="relative flex-1 h-full min-w-0 font-mono overflow-hidden group">
-          <!-- Highlight Overlay -->
-          <div class="absolute inset-0 px-4 h-full flex items-center pointer-events-none whitespace-pre text-sm text-slate-200" aria-hidden="true" v-html="highlightedUrl"></div>
-          
+        <div class="relative flex-1 h-full min-w-0 font-mono overflow-hidden group" :title="urlHostnameTooltip ? 'Resolved Host: ' + urlHostnameTooltip : ''">
           <input type="text" ref="urlInputRef" v-model="url" :placeholder="'Enter API URL (e.g., {{url}}/v1/users)'" 
-            class="absolute inset-0 w-full h-full bg-transparent px-4 outline-none text-transparent caret-white text-sm placeholder:text-slate-600 font-mono"
+            class="absolute inset-0 w-full h-full bg-transparent px-4 outline-none text-transparent caret-white text-sm placeholder:text-slate-600 font-mono z-10"
             @keyup.enter="sendRequest"
             @scroll="syncUrlScroll"
             spellcheck="false" />
+            
+          <!-- Highlight Overlay -->
+          <div class="absolute inset-0 px-4 h-full flex items-center pointer-events-none whitespace-pre text-sm text-slate-200 z-20" aria-hidden="true" v-html="highlightedUrl" @mouseover="handleVarHover" @mouseout="handleVarLeave" @click="handleVarClick"></div>
         </div>
       </div>
       <button id="save-btn" @click="handleSaveAction" :disabled="!workspaceStore.activeCollection" 
@@ -181,8 +195,8 @@
           </button>
         </div>
         
-        <div class="flex-1 bg-slate-950 overflow-hidden relative">
-          <div v-show="activeTab === 'auth'" class="absolute inset-0 p-6 overflow-auto custom-scrollbar bg-slate-950 flex flex-col gap-6">
+        <div class="flex-1 bg-transparent overflow-hidden relative" @mouseover="handleVarHover" @mouseout="handleVarLeave">
+          <div v-show="activeTab === 'auth'" class="absolute inset-0 p-6 overflow-auto custom-scrollbar bg-transparent flex flex-col gap-6">
             <div class="flex items-center gap-4">
               <label class="text-sm font-medium text-slate-300 w-24">Type</label>
               <select v-model="authType" class="bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 transition-colors w-64 outline-none appearance-none cursor-pointer">
@@ -213,20 +227,20 @@
               This request does not use any authorization.
             </div>
           </div>
-          <KeyValueEditor v-show="activeTab === 'query'" v-model="queryParams" title="Query Params" :error="queryParamsError" placeholder="[\n  { &quot;key&quot;: &quot;search&quot;, &quot;value&quot;: &quot;test&quot; }\n]" />
-          <KeyValueEditor v-show="activeTab === 'headers'" v-model="headers" title="Headers" :error="headersError" placeholder="[\n  { &quot;key&quot;: &quot;Authorization&quot;, &quot;value&quot;: &quot;Bearer {{token}}&quot; }\n]" />
-          <div v-show="activeTab === 'body'" class="absolute inset-0 flex flex-col bg-slate-950">
+          <KeyValueEditor v-show="activeTab === 'query'" v-model="queryParams" title="Query Params" :error="queryParamsError" placeholder="[\n  { &quot;key&quot;: &quot;search&quot;, &quot;value&quot;: &quot;test&quot; }\n]" @varHover="handleVarHover" @varLeave="handleVarLeave" />
+          <KeyValueEditor v-show="activeTab === 'headers'" v-model="headers" title="Headers" :error="headersError" placeholder="[\n  { &quot;key&quot;: &quot;Authorization&quot;, &quot;value&quot;: &quot;Bearer {{token}}&quot; }\n]" @varHover="handleVarHover" @varLeave="handleVarLeave" />
+          <div v-show="activeTab === 'body'" class="absolute inset-0 flex flex-col bg-transparent">
             <div class="flex items-center gap-2 p-2 border-b border-slate-800 bg-slate-900/50">
-              <label class="flex items-center gap-1.5 cursor-pointer text-sm text-slate-300 hover:text-white transition-colors">
+              <label class="flex items-center gap-1.5 cursor-pointer text-sm text-slate-300 hover:text-slate-200 transition-colors">
                 <input type="radio" v-model="bodyType" value="none" class="accent-blue-500 bg-slate-900 border-slate-700" /> none
               </label>
-              <label class="flex items-center gap-1.5 cursor-pointer text-sm text-slate-300 hover:text-white transition-colors ml-3">
+              <label class="flex items-center gap-1.5 cursor-pointer text-sm text-slate-300 hover:text-slate-200 transition-colors ml-3">
                 <input type="radio" v-model="bodyType" value="formdata" class="accent-blue-500 bg-slate-900 border-slate-700" /> form-data
               </label>
-              <label class="flex items-center gap-1.5 cursor-pointer text-sm text-slate-300 hover:text-white transition-colors ml-3">
+              <label class="flex items-center gap-1.5 cursor-pointer text-sm text-slate-300 hover:text-slate-200 transition-colors ml-3">
                 <input type="radio" v-model="bodyType" value="urlencoded" class="accent-blue-500 bg-slate-900 border-slate-700" /> x-www-form-urlencoded
               </label>
-              <label class="flex items-center gap-1.5 cursor-pointer text-sm text-slate-300 hover:text-white transition-colors ml-3">
+              <label class="flex items-center gap-1.5 cursor-pointer text-sm text-slate-300 hover:text-slate-200 transition-colors ml-3">
                 <input type="radio" v-model="bodyType" value="raw" class="accent-blue-500 bg-slate-900 border-slate-700" /> raw
               </label>
             </div>
@@ -234,8 +248,8 @@
               <div v-if="bodyType === 'none'" class="absolute inset-0 flex items-center justify-center text-slate-500 text-sm">
                 This request does not have a body
               </div>
-              <FormDataEditor v-else-if="bodyType === 'formdata'" v-model="bodyForm" title="Form Data" :error="bodyFormError" @update:files="onFilesUpdate" />
-              <KeyValueEditor v-else-if="bodyType === 'urlencoded'" v-model="bodyUrlencoded" title="URL Encoded" :error="bodyUrlencodedError" placeholder="[\n  { &quot;key&quot;: &quot;name&quot;, &quot;value&quot;: &quot;john&quot; }\n]" />
+              <FormDataEditor v-else-if="bodyType === 'formdata'" v-model="bodyForm" title="Form Data" :error="bodyFormError" @update:files="onFilesUpdate" @varHover="handleVarHover" @varLeave="handleVarLeave" />
+              <KeyValueEditor v-else-if="bodyType === 'urlencoded'" v-model="bodyUrlencoded" title="URL Encoded" :error="bodyUrlencodedError" placeholder="[\n  { &quot;key&quot;: &quot;name&quot;, &quot;value&quot;: &quot;john&quot; }\n]" @varHover="handleVarHover" @varLeave="handleVarLeave" />
               <CodeEditor v-else-if="bodyType === 'raw'" v-model="body" placeholder='{
   "key": "value"
 }' />
@@ -266,7 +280,7 @@
             <span class="text-slate-400 text-xs flex items-center gap-1 font-mono bg-slate-950/50 px-2 py-1.5 rounded-md border border-slate-800"><Clock class="w-3 h-3"/> {{ response.timeMs }} ms</span>
           </div>
         </div>
-        <div class="flex-1 overflow-auto bg-slate-950 relative custom-scrollbar">
+        <div class="flex-1 overflow-auto bg-transparent relative custom-scrollbar">
           <div v-if="error" class="m-4 p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm font-mono break-all">
             {{ error }}
           </div>
@@ -287,7 +301,7 @@
     </template>
     
     <!-- Empty State -->
-    <div v-else class="flex-1 flex flex-col items-center justify-center text-slate-500 bg-slate-950">
+    <div v-else class="flex-1 flex flex-col items-center justify-center text-slate-500 bg-transparent">
       <Activity class="w-16 h-16 opacity-20 mb-4" />
       <h2 class="text-xl font-medium text-slate-300 mb-2">No Request Selected</h2>
       <p class="text-sm mb-4">Select a request from the sidebar or click + to create one.</p>
@@ -325,7 +339,7 @@ const urlInputRef = ref(null)
 const highlightedUrl = computed(() => {
   if (!url.value) return ''
   const escaped = url.value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-  return escaped.replace(/(\{\{[^}]+\}\})/g, '<span class="text-amber-400">$1</span>')
+  return escaped.replace(/\{\{([^}]+)\}\}/g, '<span class="text-amber-400 pointer-events-auto cursor-pointer hover:underline env-var-highlight" data-var="$1">{{$1}}</span>')
 })
 
 const syncUrlScroll = (e) => {
@@ -389,10 +403,39 @@ let isSwitchingTab = false
 
 // Environment Manager state
 const showEnvModal = ref(false)
-const environments = ref([{ id: 'global', name: 'Globals', variables: [] }])
-const activeEnvironmentId = ref('global')
-const editingEnvironmentId = ref('global')
+
+const loadEnvironments = () => {
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem('postman_clone_environments')
+    if (saved) {
+      try {
+        return JSON.parse(saved)
+      } catch(e) {}
+    }
+  }
+  return [{ id: 'global', name: 'Globals', variables: [] }]
+}
+
+const environments = ref(loadEnvironments())
+const activeEnvironmentId = ref(typeof window !== 'undefined' ? localStorage.getItem('postman_clone_active_env') || 'global' : 'global')
+const editingEnvironmentId = ref(activeEnvironmentId.value)
 const editingSidebarId = ref(null)
+
+watch(environments, (newVal) => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('postman_clone_environments', JSON.stringify(newVal))
+  }
+}, { deep: true })
+
+watch(activeEnvironmentId, (newVal) => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('postman_clone_active_env', newVal)
+  }
+})
+
+const vFocus = {
+  mounted: (el) => el.focus()
+}
 
 const activeEnvironment = computed(() => environments.value.find(e => e.id === activeEnvironmentId.value) || environments.value[0])
 const editingEnvironment = computed(() => environments.value.find(e => e.id === editingEnvironmentId.value) || environments.value[0])
@@ -469,6 +512,52 @@ const setEnvValue = (key, value) => {
     targetEnv.variables[idx].value = String(value)
   } else {
     targetEnv.variables.push({ key, value: String(value) })
+  }
+}
+
+const hoveredVar = ref(null)
+const hoveredVarValue = ref('')
+const varPopoverStyle = ref({ top: '0px', left: '0px', display: 'none' })
+let popoverTimeout = null
+
+const handleVarClick = (e) => {
+  if (e.target && e.target.classList && e.target.classList.contains('env-var-highlight')) {
+    if (urlInputRef.value) urlInputRef.value.focus()
+  }
+}
+
+const handleVarHover = (e) => {
+  if (e.target && e.target.classList && e.target.classList.contains('env-var-highlight')) {
+    clearTimeout(popoverTimeout)
+    const varName = e.target.getAttribute('data-var')
+    
+    if (hoveredVar.value !== varName) {
+      hoveredVar.value = varName
+      hoveredVarValue.value = getEnvValue(varName) || ''
+    }
+    
+    const rect = e.target.getBoundingClientRect()
+    varPopoverStyle.value = {
+      display: 'block',
+      top: rect.bottom + 'px',
+      left: rect.left + 'px'
+    }
+  }
+}
+
+const handleVarLeave = (e) => {
+  popoverTimeout = setTimeout(() => {
+    varPopoverStyle.value = { display: 'none' }
+  }, 300)
+}
+
+const clearVarPopoverTimeout = () => {
+  clearTimeout(popoverTimeout)
+}
+
+const updateHoveredVar = () => {
+  if (hoveredVar.value) {
+    setEnvValue(hoveredVar.value, hoveredVarValue.value)
   }
 }
 
@@ -776,6 +865,18 @@ const statusClass = computed(() => {
   return 'text-xs font-mono px-2 py-1 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20'
 })
 
+const urlHostnameTooltip = computed(() => {
+  if (!url.value) return ''
+  try {
+    const fullUrl = interpolate(url.value)
+    const urlStr = fullUrl.startsWith('http') ? fullUrl : 'http://' + fullUrl
+    const urlObj = new URL(urlStr)
+    return urlObj.origin
+  } catch (e) {
+    return ''
+  }
+})
+
 const statusDotClass = computed(() => {
   if (!response.value) return ''
   const status = response.value.status
@@ -1022,6 +1123,10 @@ const handleSaveRequest = async () => {
       bodyType: bodyType.value,
       bodyForm: JSON.stringify(bodyForm.value.map(i => ({...i, file: undefined}))),
       bodyUrlencoded: bodyUrlencoded.value,
+      authType: authType.value,
+      authBearerToken: authBearerToken.value,
+      authBasicUsername: authBasicUsername.value,
+      authBasicPassword: authBasicPassword.value,
       preRequestScript: preRequestScript.value,
       testScript: testScript.value
     }, workspaceStore.activeRequest.id)
@@ -1036,6 +1141,10 @@ const handleSaveRequest = async () => {
       bodyType: bodyType.value,
       bodyForm: JSON.stringify(bodyForm.value.map(i => ({...i, file: undefined}))),
       bodyUrlencoded: bodyUrlencoded.value,
+      authType: authType.value,
+      authBearerToken: authBearerToken.value,
+      authBasicUsername: authBasicUsername.value,
+      authBasicPassword: authBasicPassword.value,
       preRequestScript: preRequestScript.value,
       testScript: testScript.value
     })
@@ -1061,6 +1170,10 @@ const handleSaveAction = async () => {
       bodyType: bodyType.value,
       bodyForm: JSON.stringify(bodyForm.value.map(i => ({...i, file: undefined}))),
       bodyUrlencoded: bodyUrlencoded.value,
+      authType: authType.value,
+      authBearerToken: authBearerToken.value,
+      authBasicUsername: authBasicUsername.value,
+      authBasicPassword: authBasicPassword.value,
       preRequestScript: preRequestScript.value,
       testScript: testScript.value
     })

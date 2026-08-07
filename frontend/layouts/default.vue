@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-screen bg-slate-950 text-slate-200 overflow-hidden">
+  <div class="flex h-screen bg-transparent text-slate-200 overflow-hidden">
     <input type="file" ref="fileInput" @change="handleFileUpload" accept=".json" class="hidden" />
     <!-- Sidebar -->
     <div v-if="authStore.user" class="bg-slate-900/50 backdrop-blur-md border-r border-slate-800 flex flex-col shadow-xl z-10 shrink-0 relative transition-[width] duration-0" :style="{ width: `${sidebarWidth}px` }">
@@ -116,22 +116,11 @@
         </div>
       </div>
       
-      <!-- Theme Switcher -->
-      <div class="p-4 border-t border-slate-800 bg-slate-900/50 flex flex-col gap-3 shrink-0">
-        <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2"><Palette class="w-4 h-4"/> Theme</span>
-        <div class="flex bg-slate-950 rounded-lg p-1 border border-slate-800">
-          <button @click="theme = 'dark'" :class="theme === 'dark' ? 'bg-slate-800 text-slate-200 shadow-sm' : 'text-slate-500 hover:text-slate-300'" class="flex-1 py-1.5 text-xs font-medium rounded-md transition-all">Dark</button>
-          <button @click="theme = 'light'" :class="theme === 'light' ? 'bg-slate-200 text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-300'" class="flex-1 py-1.5 text-xs font-medium rounded-md transition-all">Light</button>
-          <button @click="theme = 'ocean'" :class="theme === 'ocean' ? 'bg-blue-900/50 text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-300'" class="flex-1 py-1.5 text-xs font-medium rounded-md transition-all">Ocean</button>
-        </div>
-      </div>
-
-      <!-- Advanced Settings -->
-      <div class="p-4 border-t border-slate-800 bg-slate-900/50 flex flex-col gap-3 shrink-0">
-        <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2"><Settings class="w-4 h-4"/> System</span>
-        <button @click="clearCache" class="flex items-center justify-center gap-2 w-full py-1.5 text-xs font-medium rounded-md transition-all bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 shadow-sm outline-none">
-          <Trash2 class="w-3.5 h-3.5" /> Clear Cache
-        </button>
+      <!-- Bottom Actions -->
+      <div class="p-3 border-t border-slate-800 bg-slate-900/80 flex items-center gap-2 shrink-0">
+         <button @click="showSettingsModal = true" class="flex-1 flex items-center justify-center gap-2 py-2 bg-slate-800/50 hover:bg-slate-700/80 text-slate-300 hover:text-slate-200 rounded-lg text-sm transition-colors border border-slate-700/50 hover:border-slate-600/50">
+            <Settings class="w-4 h-4" /> Settings
+         </button>
       </div>
 
       <!-- Resizer Handle -->
@@ -141,11 +130,67 @@
     </div>
 
     <!-- Main Content Slot -->
-    <div class="flex-1 flex flex-col min-w-0 bg-slate-950 z-0 relative">
-      <div v-if="!authStore.user" class="absolute inset-0 flex items-center justify-center bg-slate-950 text-slate-400 z-50">
+    <div class="flex-1 flex flex-col min-w-0 bg-transparent z-0 relative">
+      <div v-if="!authStore.user" class="absolute inset-0 flex items-center justify-center bg-transparent text-slate-400 z-50">
         Loading...
       </div>
       <slot />
+    </div>
+
+    <!-- Settings Modal -->
+    <div v-if="showSettingsModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div class="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-md overflow-hidden shadow-2xl flex flex-col transform transition-all">
+        <div class="flex justify-between items-center p-4 border-b border-slate-800">
+          <h3 class="font-semibold text-lg flex items-center gap-2"><Settings class="w-5 h-5 text-indigo-400" /> Settings</h3>
+          <button @click="showSettingsModal = false" class="text-slate-400 hover:text-slate-200 p-1 rounded-md hover:bg-slate-800 transition-colors"><X class="w-5 h-5"/></button>
+        </div>
+        <div class="p-6 space-y-8">
+          <!-- Theme Settings -->
+          <div>
+            <label class="block text-sm font-medium text-slate-300 mb-3 flex items-center gap-2"><Palette class="w-4 h-4" /> Appearance</label>
+            <div class="flex bg-slate-950 rounded-lg p-1 border border-slate-800">
+               <button @click="theme = 'system'" :class="theme === 'system' ? 'bg-slate-800 text-slate-200 shadow-sm' : 'text-slate-500 hover:text-slate-300'" class="flex-1 py-2 text-xs font-medium rounded-md transition-all">System</button>
+               <button @click="theme = 'dark'" :class="theme === 'dark' ? 'bg-slate-800 text-slate-200 shadow-sm' : 'text-slate-500 hover:text-slate-300'" class="flex-1 py-2 text-xs font-medium rounded-md transition-all">Dark</button>
+               <button @click="theme = 'light'" :class="theme === 'light' ? 'bg-slate-200 text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-300'" class="flex-1 py-2 text-xs font-medium rounded-md transition-all">Light</button>
+               <button @click="theme = 'ocean'" :class="theme === 'ocean' ? 'bg-blue-900/50 text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-300'" class="flex-1 py-2 text-xs font-medium rounded-md transition-all">Ocean</button>
+               <button @click="theme = 'anime'" :class="theme === 'anime' ? 'bg-purple-900/50 text-purple-400 shadow-sm' : 'text-slate-500 hover:text-slate-300'" class="flex-1 py-2 text-xs font-medium rounded-md transition-all">Anime</button>
+            </div>
+          </div>
+          
+          <!-- Anime Theme Settings -->
+          <div v-if="theme === 'anime'" class="animate-in fade-in slide-in-from-top-2 space-y-6">
+            <div>
+              <label class="block text-sm font-medium text-slate-300 mb-2">Theme Tint Color</label>
+              <div class="flex items-center gap-3">
+                <input type="color" v-model="themeTintColor" class="w-10 h-10 rounded cursor-pointer bg-slate-950/50 border border-slate-700 p-0.5" />
+                <span class="text-sm text-slate-400 font-mono">{{ themeTintColor }}</span>
+              </div>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-slate-300 mb-2">Background Image</label>
+              <div class="flex gap-2">
+                <input v-model="bgImageUrl" class="flex-1 min-w-0 bg-slate-950/50 border border-slate-700 text-slate-200 px-3 py-2 rounded-lg text-sm focus:outline-none focus:border-purple-500 transition-colors" placeholder="Image URL..." />
+                <button @click="triggerBgUpload" class="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-lg shadow-purple-500/20 whitespace-nowrap shrink-0 flex items-center gap-2">
+                  <Upload class="w-4 h-4" /> Upload
+                </button>
+              </div>
+              <input type="file" ref="bgFileInput" @change="handleBgUpload" accept="image/*" class="hidden" />
+            </div>
+          </div>
+          
+          <!-- Data & System Settings -->
+          <div>
+            <label class="block text-sm font-medium text-slate-300 mb-3 flex items-center gap-2"><Database class="w-4 h-4" /> Data & System</label>
+            <div class="bg-slate-950/50 border border-slate-800 rounded-lg p-4">
+              <p class="text-xs text-slate-400 mb-4 leading-relaxed">Clearing cache will reset your local preferences, theme, and active workspace selections. It will preserve your saved scripts and auth data.</p>
+              <button @click="clearCache" class="flex items-center justify-center gap-2 w-full py-2 text-sm font-medium rounded-md transition-all bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 shadow-sm outline-none">
+                <Trash2 class="w-4 h-4" /> Clear Local Cache
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Team Management Modal -->
@@ -153,7 +198,7 @@
       <div class="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col">
         <div class="flex justify-between items-center p-4 border-b border-slate-800">
           <h3 class="font-semibold text-lg flex items-center gap-2"><Users class="w-5 h-5 text-indigo-400" /> Manage Team for {{ teamWorkspace?.name }}</h3>
-          <button @click="showTeamModal = false" class="text-slate-400 hover:text-white p-1 rounded-md hover:bg-slate-800 transition-colors"><X class="w-5 h-5"/></button>
+          <button @click="showTeamModal = false" class="text-slate-400 hover:text-slate-200 p-1 rounded-md hover:bg-slate-800 transition-colors"><X class="w-5 h-5"/></button>
         </div>
         <div class="p-6">
           <div class="mb-6">
@@ -206,6 +251,24 @@
         </div>
       </div>
     </div>
+    <!-- Alert Modal -->
+    <div v-if="alertData.show" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div class="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-sm overflow-hidden shadow-2xl flex flex-col transform transition-all">
+        <div class="flex justify-between items-center p-4 border-b border-slate-800">
+          <h3 class="font-semibold text-lg flex items-center gap-2" :class="alertData.type === 'error' ? 'text-red-400' : 'text-emerald-400'">
+            <component :is="alertData.type === 'error' ? AlertTriangle : CheckCircle2" class="w-5 h-5" />
+            {{ alertData.title }}
+          </h3>
+          <button @click="alertData.show = false" class="text-slate-400 hover:text-slate-200 p-1 rounded-md hover:bg-slate-800 transition-colors"><X class="w-5 h-5"/></button>
+        </div>
+        <div class="p-6">
+          <p class="text-sm text-slate-300">{{ alertData.message }}</p>
+        </div>
+        <div class="p-4 border-t border-slate-800 flex justify-end gap-3 bg-slate-900/50">
+          <button @click="alertData.show = false" class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors shadow-lg shadow-indigo-500/20">OK</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -214,19 +277,33 @@ import { ref, onMounted, provide, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../features/auth/stores/auth'
 import { useWorkspaceStore } from '../stores/workspace'
-import { Folder, LogOut, Plus, ChevronRight, Database, Layers, Palette, MoreVertical, Edit2, Copy, Trash2, Users, X, FilePlus, FolderPlus, Upload, Download, Settings, Search } from 'lucide-vue-next'
+import { Folder, LogOut, Plus, ChevronRight, Database, Layers, Palette, MoreVertical, Edit2, Copy, Trash2, Users, X, FilePlus, FolderPlus, Upload, Download, Settings, Search, AlertTriangle, CheckCircle2 } from 'lucide-vue-next'
 import FolderTreeItem from '../components/FolderTreeItem.vue'
 import { useState } from '#app'
 
 const authStore = useAuthStore()
 const workspaceStore = useWorkspaceStore()
 const router = useRouter()
-const theme = useState('theme', () => 'dark')
+const theme = useState('theme', () => 'system')
+const bgImageUrl = useState('bgImageUrl')
+const themeTintColor = useState('themeTintColor')
 
 const newWorkspaceName = ref('')
 const newCollectionName = ref('')
 const activeMenu = ref(null)
 
+const alertData = ref({
+  show: false,
+  title: '',
+  message: '',
+  type: 'success'
+})
+
+const showAlert = (title, message, type = 'success') => {
+  alertData.value = { show: true, title, message, type }
+}
+
+const showSettingsModal = ref(false)
 const showTeamModal = ref(false)
 const teamWorkspace = ref(null)
 const inviteEmail = ref('')
@@ -341,9 +418,9 @@ const handleFileUpload = (event) => {
       } else {
         await workspaceStore.importGlobalCollection(data)
       }
-      alert('Collection imported successfully!')
+      showAlert('Success', 'Collection imported successfully!', 'success')
     } catch (err) {
-      alert('Error importing collection: ' + err.message)
+      showAlert('Error', 'Error importing collection: ' + err.message, 'error')
     } finally {
       event.target.value = '' // reset input
       importWorkspaceTarget.value = null // reset target
@@ -361,12 +438,38 @@ const triggerGlobalImport = () => {
   }
 }
 
+const bgFileInput = ref(null)
+
+const triggerBgUpload = () => {
+  if (bgFileInput.value) {
+    bgFileInput.value.click()
+  }
+}
+
+const handleBgUpload = (event) => {
+  const file = event.target.files[0]
+  if (!file) return
+  
+  if (file.size > 2.5 * 1024 * 1024) {
+    showAlert('File Too Large', 'Please select an image smaller than 2.5MB so it can be saved to your browser storage.', 'error')
+    event.target.value = ''
+    return
+  }
+
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    bgImageUrl.value = e.target.result
+    event.target.value = ''
+  }
+  reader.readAsDataURL(file)
+}
+
 const handleExport = async (ws) => {
   activeMenu.value = null
   try {
     await workspaceStore.exportWorkspace(ws.id, ws.name)
   } catch (err) {
-    alert('Error exporting workspace: ' + err.message)
+    showAlert('Export Error', 'Error exporting workspace: ' + err.message, 'error')
   }
 }
 
@@ -427,7 +530,7 @@ const handleRemoveMember = async (userId) => {
       await workspaceStore.removeWorkspaceMember(teamWorkspace.value.id, userId)
       teamWorkspace.value = workspaceStore.workspaces.find(w => w.id === teamWorkspace.value.id)
     } catch (err) {
-      alert(err.message || 'Failed to remove user')
+      showAlert('Error', err.message || 'Failed to remove user', 'error')
     }
   }
 }

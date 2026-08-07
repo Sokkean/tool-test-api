@@ -77,6 +77,24 @@
     --scroll-thumb: #13385e;
     --scroll-thumb-hover: #0e7490;
   }
+
+  [data-theme="anime"] {
+    /* Vibrant purple aesthetic for anime theme */
+    --theme-50: 250 245 255;
+    --theme-100: 243 232 255;
+    --theme-200: 233 213 255;
+    --theme-300: 216 180 254;
+    --theme-400: 192 132 252;
+    --theme-500: 168 85 247;
+    --theme-600: 147 51 234;
+    --theme-700: 126 34 206;
+    --theme-800: 107 33 168;
+    --theme-900: 88 28 135;
+    --theme-950: 59 7 100;
+    
+    --scroll-thumb: #6b21a8;
+    --scroll-thumb-hover: #9333ea;
+  }
 }
 
 /* Custom Scrollbar for a premium feel */
